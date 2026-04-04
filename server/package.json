@@ -1,0 +1,9 @@
+{
+  "name": "ha-homekit-dashboard-server",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,150 @@
+import { useState, useCallback } from 'react'
+import { Thermometer } from 'lucide-react'
+import { BaseTile } from './BaseTile'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog'
+import { useEntity } from '@/hooks/useEntities'
+import { useHA } from '@/hooks/useHAClient'
+import { entityLabel, formatTemp } from '@/lib/utils'
+import type { ClimateAttributes } from '@/types/ha-types'
+import { cn } from '@/lib/utils'
+
+const HVAC_COLORS: Record<string, string> = {
+  heat:    'text-ios-amber',
+  cool:    'text-ios-blue',
+  heat_cool:'text-ios-purple',
+  auto:    'text-ios-green',
+  off:     'text-ios-secondary',
+  fan_only:'text-ios-teal',
+  dry:     'text-ios-teal',
+}
+
+const MODE_LABELS: Record<string, string> = {
+  heat:     'Heat',
+  cool:     'Cool',
+  heat_cool:'Heat/Cool',
+  auto:     'Auto',
+  fan_only: 'Fan',
+  dry:      'Dry',
+  off:      'Off',
+}
+
+interface ThermostatTileProps {
+  entityId: string
+}
+
+export function ThermostatTile({ entityId }: ThermostatTileProps) {
+  const entity = useEntity(entityId)
+  const { callService } = useHA()
+  const [open, setOpen] = useState(false)
+
+  if (!entity) return null
+
+  const attrs = entity.attributes as ClimateAttributes
+  const hvacMode = entity.state
+  const isActive = hvacMode !== 'off'
+  const activeColor = hvacMode === 'heat' ? 'amber' : hvacMode === 'cool' ? 'blue' : 'purple'
+
+  const currentTemp = attrs.current_temperature
+  const targetTemp = attrs.temperature ?? 20
+  const unit = attrs.unit_of_measurement ?? '°C'
+  const modes = attrs.hvac_modes ?? []
+
+  const adjustTemp = useCallback(
+    (delta: number) => {
+      const next = Math.round((targetTemp + delta) * 2) / 2
+      const min = attrs.min_temp ?? 7
+      const max = attrs.max_temp ?? 35
+      if (next < min || next > max) return
+      callService('climate', 'set_temperature', { temperature: next }, entityId)
+    },
+    [callService, entityId, targetTemp, attrs.min_temp, attrs.max_temp]
+  )
+
+  const setMode = useCallback(
+    (mode: string) => {
+      callService('climate', 'set_hvac_mode', { hvac_mode: mode }, entityId)
+    },
+    [callService, entityId]
+  )
+
+  return (
+    <>
+      <BaseTile
+        isActive={isActive}
+        activeColor={activeColor as 'amber' | 'blue' | 'purple'}
+        icon={<Thermometer className="w-full h-full" />}
+        label={entityLabel(entityId, attrs.friendly_name)}
+        sublabel={`${formatTemp(currentTemp, unit)} → ${formatTemp(targetTemp, unit)}`}
+        onClick={() => setOpen(true)}
+      />
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogTitle>{entityLabel(entityId, attrs.friendly_name)}</DialogTitle>
+
+          {/* Current temperature */}
+          <div className="mt-4 text-center">
+            <p className="text-xs text-ios-secondary uppercase tracking-wide">Current</p>
+            <p className="text-4xl font-thin text-ios-label mt-1">
+              {formatTemp(currentTemp, unit)}
+            </p>
+          </div>
+
+          {/* Target temperature */}
+          <div className="mt-6 flex items-center justify-center gap-6">
+            <button
+              onClick={() => adjustTemp(-0.5)}
+              className="w-12 h-12 rounded-full bg-ios-card-2 flex items-center justify-center text-2xl text-ios-label hover:bg-ios-separator active:scale-95 transition-all"
+            >
+              −
+            </button>
+            <div className="text-center">
+              <p className="text-5xl font-light text-ios-label">{formatTemp(targetTemp, unit)}</p>
+              <p className="text-xs text-ios-secondary mt-1">Target</p>
+            </div>
+            <button
+              onClick={() => adjustTemp(0.5)}
+              className="w-12 h-12 rounded-full bg-ios-card-2 flex items-center justify-center text-2xl text-ios-label hover:bg-ios-separator active:scale-95 transition-all"
+            >
+              +
+            </button>
+          </div>
+
+          {/* Mode selector */}
+          {modes.length > 0 && (
+            <div className="mt-6">
+              <p className="text-xs text-ios-secondary uppercase tracking-wide mb-3">Mode</p>
+              <div className="flex flex-wrap gap-2">
+                {modes.map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setMode(mode)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+                      hvacMode === mode
+                        ? cn('bg-ios-card-2 border border-white/10', HVAC_COLORS[mode] ?? 'text-ios-label')
+                        : 'text-ios-secondary bg-ios-card border border-transparent hover:border-white/5'
+                    )}
+                  >
+                    {MODE_LABELS[mode] ?? mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogClose asChild>
+            <button className="mt-6 w-full py-3 rounded-2xl bg-ios-card-2 text-ios-label text-sm font-medium hover:bg-ios-separator transition-colors">
+              Done
+            </button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
