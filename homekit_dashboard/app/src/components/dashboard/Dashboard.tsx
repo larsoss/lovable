@@ -5,9 +5,15 @@ import { TilesGrid } from './TilesGrid'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { useHA } from '@/hooks/useHAClient'
 import { getDomain } from '@/lib/utils'
-import { Wifi, Activity, GripVertical, Star } from 'lucide-react'
+import { GRID_COLS } from '@/lib/theme-storage'
+import {
+  Wifi, Activity, GripVertical, Star,
+  Home, Sofa, BedDouble, ChefHat, Bath, Car, Flower2, Tv, Dumbbell,
+  Lightbulb, Thermometer,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { HassEntity } from '@/types/ha-types'
+import type { LucideIcon } from 'lucide-react'
 
 const TILE_DOMAINS = new Set([
   'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
@@ -35,9 +41,24 @@ function EmptyState() {
   )
 }
 
-// ── Area section with drag handle ────────────────────────────────────────────
+// ── Area icon by name keyword ─────────────────────────────────────────────────
 
-interface AreaSectionProps {
+function getAreaIcon(name: string): LucideIcon {
+  const n = name.toLowerCase()
+  if (/slaap|bed|kamer/.test(n) && /slaap|bed/.test(n)) return BedDouble
+  if (/woon|living|lounge|salon/.test(n)) return Sofa
+  if (/keuken|kitchen|cook/.test(n)) return ChefHat
+  if (/bad|bath|toilet|wc/.test(n)) return Bath
+  if (/garage|car|auto/.test(n)) return Car
+  if (/tuin|garden|buiten|outdoor/.test(n)) return Flower2
+  if (/tv|media|cinema|film/.test(n)) return Tv
+  if (/gym|sport|fitness/.test(n)) return Dumbbell
+  return Home
+}
+
+// ── Area Card ─────────────────────────────────────────────────────────────────
+
+interface AreaCardProps {
   areaId: string
   areaName: string
   entities: HassEntity[]
@@ -46,11 +67,65 @@ interface AreaSectionProps {
   onDragOver: (e: React.DragEvent) => void
   onDrop: () => void
   onDragEnd: () => void
+  onClick: () => void
 }
 
-function AreaSection({
-  areaName, entities, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd,
-}: AreaSectionProps) {
+function AreaCard({
+  areaName, entities, isDragOver,
+  onDragStart, onDragOver, onDrop, onDragEnd, onClick,
+}: AreaCardProps) {
+  const { theme } = useHA()
+  const isGlass = theme.tileStyle === 'glass'
+  const opacity = theme.tileOpacity / 100
+
+  const lightsOn = entities.filter(
+    (e) => getDomain(e.entity_id) === 'light' && e.state === 'on'
+  ).length
+  const switchesOn = entities.filter(
+    (e) => ['switch', 'input_boolean'].includes(getDomain(e.entity_id)) && e.state === 'on'
+  ).length
+  const activeCount = lightsOn + switchesOn
+
+  // Temperature: first climate or temp sensor
+  const tempEntity = entities.find((e) => {
+    const d = getDomain(e.entity_id)
+    if (d === 'climate') return true
+    if (d === 'sensor') {
+      const attr = e.attributes as Record<string, unknown>
+      return attr.device_class === 'temperature' || e.entity_id.includes('temp')
+    }
+    return false
+  })
+  const tempLabel = tempEntity
+    ? getDomain(tempEntity.entity_id) === 'climate'
+      ? String((tempEntity.attributes as Record<string, unknown>).current_temperature ?? tempEntity.state)
+      : tempEntity.state
+    : null
+  const tempUnit = tempEntity
+    ? String((tempEntity.attributes as Record<string, unknown>).unit_of_measurement ?? '°')
+    : null
+
+  const hasActivity = activeCount > 0
+  const AreaIcon = getAreaIcon(areaName)
+
+  const bgStyle: React.CSSProperties = isGlass
+    ? hasActivity
+      ? {
+          background: `rgba(255,159,10,${0.18 * opacity})`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid rgba(255,255,255,${0.18 * opacity})`,
+        }
+      : {
+          background: `rgba(255,255,255,${0.06 * opacity})`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid rgba(255,255,255,${0.10 * opacity})`,
+        }
+    : hasActivity
+      ? { background: `rgba(255,159,10,${0.18 * opacity})` }
+      : { background: `rgba(44,44,46,${opacity})` }
+
   return (
     <div
       draggable
@@ -58,25 +133,66 @@ function AreaSection({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
+      onClick={onClick}
       className={cn(
-        'transition-all duration-150',
-        isDragOver && 'opacity-50 scale-[0.99]'
+        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between aspect-square',
+        'cursor-pointer select-none transition-all duration-150 active:scale-95',
+        isDragOver && 'opacity-50 scale-[0.97]'
       )}
+      style={bgStyle}
     >
-      <div className="flex items-center gap-1 px-4 pt-5 pb-2 cursor-grab active:cursor-grabbing">
-        <GripVertical className="w-4 h-4 text-ios-secondary/40 shrink-0" />
-        <h2 className="text-base font-bold text-ios-label">{areaName}</h2>
-        <span className="text-xs text-ios-secondary ml-1">{entities.length}</span>
+      {/* Top row: icon + drag handle */}
+      <div className="flex items-start justify-between">
+        <AreaIcon className={cn(
+          'w-6 h-6',
+          hasActivity ? 'text-ios-amber' : 'text-ios-secondary'
+        )} />
+        <GripVertical
+          className="w-4 h-4 text-ios-secondary/30 cursor-grab active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}
+        />
       </div>
-      <TilesGrid entities={entities} />
+
+      {/* Middle: activity badges */}
+      <div className="flex flex-wrap gap-1 my-1">
+        {lightsOn > 0 && (
+          <span className="flex items-center gap-0.5 text-[10px] text-ios-amber font-medium">
+            <Lightbulb className="w-3 h-3" />{lightsOn}
+          </span>
+        )}
+        {tempLabel && (
+          <span className="flex items-center gap-0.5 text-[10px] text-ios-secondary font-medium">
+            <Thermometer className="w-3 h-3" />{tempLabel}{tempUnit}
+          </span>
+        )}
+      </div>
+
+      {/* Bottom: name + count */}
+      <div>
+        <p className={cn(
+          'text-sm font-semibold leading-tight truncate',
+          hasActivity ? 'text-ios-label' : 'text-ios-secondary'
+        )}>
+          {areaName}
+        </p>
+        <p className="text-xs text-ios-secondary mt-0.5">
+          {entities.length} {entities.length === 1 ? 'device' : 'devices'}
+          {activeCount > 0 && ` · ${activeCount} on`}
+        </p>
+      </div>
     </div>
   )
 }
 
 // ── Home View ────────────────────────────────────────────────────────────────
 
-function HomeView({ onShowSettings }: { onShowSettings: () => void }) {
-  const { haAreas, customAreas, entities, resolveEntityArea, favorites, areaOrder, saveAreaOrder } = useHA()
+interface HomeViewProps {
+  onShowSettings: () => void
+  onTabChange: (tabId: string) => void
+}
+
+function HomeView({ onShowSettings, onTabChange }: HomeViewProps) {
+  const { haAreas, customAreas, entities, resolveEntityArea, favorites, areaOrder, saveAreaOrder, theme } = useHA()
   const [dragAreaId, setDragAreaId] = useState<string | null>(null)
   const [dragOverAreaId, setDragOverAreaId] = useState<string | null>(null)
   const dragCounter = useRef(0)
@@ -86,7 +202,6 @@ function HomeView({ onShowSettings }: { onShowSettings: () => void }) {
     ...customAreas,
   ], [haAreas, customAreas])
 
-  // Sort areas by saved order, unseen areas appended at end
   const sortedAreas = useMemo(() => {
     if (areaOrder.length === 0) return allAreas
     const orderMap = new Map(areaOrder.map((id, i) => [id, i]))
@@ -109,16 +224,8 @@ function HomeView({ onShowSettings }: { onShowSettings: () => void }) {
     [favorites, entities]
   )
 
-  const unassigned = useMemo(
-    () => Object.values(entities).filter(
-      (e) => TILE_DOMAINS.has(getDomain(e.entity_id)) && !resolveEntityArea(e.entity_id)
-    ),
-    [entities, resolveEntityArea]
-  )
-
   const areasWithEntities = sortedAreas.filter((a) => getAreaEntities(a.area_id).length > 0)
 
-  // Drag handlers
   const handleDrop = (targetAreaId: string) => {
     if (!dragAreaId || dragAreaId === targetAreaId) return
     const ids = sortedAreas.map((a) => a.area_id)
@@ -133,7 +240,7 @@ function HomeView({ onShowSettings }: { onShowSettings: () => void }) {
     setDragOverAreaId(null)
   }
 
-  if (areasWithEntities.length === 0 && unassigned.length === 0 && favoriteEntities.length === 0) {
+  if (areasWithEntities.length === 0 && favoriteEntities.length === 0) {
     return (
       <div>
         <EmptyState />
@@ -163,40 +270,40 @@ function HomeView({ onShowSettings }: { onShowSettings: () => void }) {
         </div>
       )}
 
-      {/* Area sections — draggable */}
-      {areasWithEntities.map((area) => (
-        <AreaSection
-          key={area.area_id}
-          areaId={area.area_id}
-          areaName={area.name}
-          entities={getAreaEntities(area.area_id)}
-          isDragOver={dragOverAreaId === area.area_id && dragAreaId !== area.area_id}
-          onDragStart={() => {
-            dragCounter.current = 0
-            setDragAreaId(area.area_id)
-          }}
-          onDragOver={(e) => {
-            e.preventDefault()
-            if (dragAreaId && dragAreaId !== area.area_id) {
-              setDragOverAreaId(area.area_id)
-            }
-          }}
-          onDrop={() => handleDrop(area.area_id)}
-          onDragEnd={() => {
-            setDragAreaId(null)
-            setDragOverAreaId(null)
-          }}
-        />
-      ))}
-
-      {/* Unassigned */}
-      {unassigned.length > 0 && (
+      {/* Area cards grid */}
+      {areasWithEntities.length > 0 && (
         <div>
-          <div className="flex items-baseline gap-2 px-4 pt-5 pb-2">
-            <h2 className="text-base font-bold text-ios-secondary">Other</h2>
-            <span className="text-xs text-ios-secondary">{unassigned.length}</span>
+          <div className="flex items-center gap-1.5 px-4 pt-5 pb-2">
+            <Home className="w-4 h-4 text-ios-secondary" />
+            <h2 className="text-base font-bold text-ios-label">Rooms</h2>
           </div>
-          <TilesGrid entities={unassigned} />
+          <div className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize])}>
+            {areasWithEntities.map((area) => (
+              <AreaCard
+                key={area.area_id}
+                areaId={area.area_id}
+                areaName={area.name}
+                entities={getAreaEntities(area.area_id)}
+                isDragOver={dragOverAreaId === area.area_id && dragAreaId !== area.area_id}
+                onClick={() => onTabChange(area.area_id)}
+                onDragStart={() => {
+                  dragCounter.current = 0
+                  setDragAreaId(area.area_id)
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  if (dragAreaId && dragAreaId !== area.area_id) {
+                    setDragOverAreaId(area.area_id)
+                  }
+                }}
+                onDrop={() => handleDrop(area.area_id)}
+                onDragEnd={() => {
+                  setDragAreaId(null)
+                  setDragOverAreaId(null)
+                }}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -230,7 +337,7 @@ export function Dashboard() {
       <Header onSettingsClick={() => setShowSettings(true)} />
       <RoomTabs activeTab={activeTab} onTabChange={setActiveTab} />
       {activeTab === 'home'
-        ? <HomeView onShowSettings={() => setShowSettings(true)} />
+        ? <HomeView onShowSettings={() => setShowSettings(true)} onTabChange={setActiveTab} />
         : filteredEntities.length > 0
           ? <TilesGrid entities={filteredEntities} className="pt-3" />
           : <EmptyState />
