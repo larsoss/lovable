@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.17] - 2026-04-06
+
+- feat: home view shows area cards instead of entity sections
+
 ## [1.0.16] - 2026-04-06
 
 - chore: update changelog
