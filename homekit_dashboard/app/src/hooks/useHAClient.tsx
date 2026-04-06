@@ -14,6 +14,17 @@ import {
   getCustomAreas,
   saveCustomAreas as persistCustomAreas,
 } from '@/lib/area-storage'
+import {
+  getTheme,
+  saveTheme,
+  BG_VALUES,
+  type ThemeConfig,
+} from '@/lib/theme-storage'
+import {
+  getEntityIcons,
+  saveEntityIcons,
+  type EntityIconMap,
+} from '@/lib/icon-storage'
 import type {
   HassEntity,
   HassArea,
@@ -43,6 +54,12 @@ interface HAContextValue {
   ) => Promise<void>
   saveEntityAreaOverrides: (overrides: EntityAreaOverrides) => void
   updateCustomAreas: (areas: CustomArea[]) => void
+  // Theme
+  theme: ThemeConfig
+  setTheme: (t: ThemeConfig) => void
+  // Entity icon overrides
+  entityIcons: EntityIconMap
+  saveEntityIcon: (entityId: string, iconName: string | null) => void
 }
 
 const HAContext = createContext<HAContextValue>({
@@ -58,6 +75,10 @@ const HAContext = createContext<HAContextValue>({
   callService: async () => undefined,
   saveEntityAreaOverrides: () => undefined,
   updateCustomAreas: () => undefined,
+  theme: getTheme(),
+  setTheme: () => undefined,
+  entityIcons: {},
+  saveEntityIcon: () => undefined,
 })
 
 export function HAProvider({ children }: { children: React.ReactNode }) {
@@ -71,7 +92,19 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
     getEntityAreaOverrides
   )
   const [customAreas, setCustomAreas] = useState<CustomArea[]>(getCustomAreas)
+  const [theme, setThemeState] = useState<ThemeConfig>(getTheme)
+  const [entityIcons, setEntityIcons] = useState<EntityIconMap>(getEntityIcons)
   const clientRef = useRef<HAClient | null>(null)
+
+  // Apply background CSS variable whenever bgStyle changes
+  useEffect(() => {
+    document.documentElement.style.setProperty('--theme-bg', BG_VALUES[theme.bgStyle])
+  }, [theme.bgStyle])
+
+  // Apply initial background on mount
+  useEffect(() => {
+    document.documentElement.style.setProperty('--theme-bg', BG_VALUES[getTheme().bgStyle])
+  }, [])
 
   useEffect(() => {
     const client = new HAClient()
@@ -173,6 +206,25 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
     [entityAreaOverrides, entityRegistry, deviceRegistry]
   )
 
+  const setTheme = useCallback((t: ThemeConfig) => {
+    saveTheme(t)
+    setThemeState(t)
+    document.documentElement.style.setProperty('--theme-bg', BG_VALUES[t.bgStyle])
+  }, [])
+
+  const saveEntityIcon = useCallback((entityId: string, iconName: string | null) => {
+    setEntityIcons((prev) => {
+      const next = { ...prev }
+      if (iconName === null) {
+        delete next[entityId]
+      } else {
+        next[entityId] = iconName
+      }
+      saveEntityIcons(next)
+      return next
+    })
+  }, [])
+
   return (
     <HAContext.Provider
       value={{
@@ -188,6 +240,10 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
         callService,
         saveEntityAreaOverrides,
         updateCustomAreas,
+        theme,
+        setTheme,
+        entityIcons,
+        saveEntityIcon,
       }}
     >
       {children}

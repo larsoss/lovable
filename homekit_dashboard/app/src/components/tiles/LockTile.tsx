@@ -10,6 +10,7 @@ import {
 import { useEntity } from '@/hooks/useEntities'
 import { useHA } from '@/hooks/useHAClient'
 import { entityLabel } from '@/lib/utils'
+import { getIconByName } from '@/lib/icons'
 import type { LockAttributes } from '@/types/ha-types'
 
 interface LockTileProps {
@@ -18,7 +19,7 @@ interface LockTileProps {
 
 export function LockTile({ entityId }: LockTileProps) {
   const entity = useEntity(entityId)
-  const { callService } = useHA()
+  const { callService, entityIcons } = useHA()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   if (!entity) return null
@@ -27,9 +28,16 @@ export function LockTile({ entityId }: LockTileProps) {
   const isLocked = entity.state === 'locked'
   const label = entityLabel(entityId, attrs.friendly_name)
 
+  const CustomIcon = entityIcons[entityId] ? getIconByName(entityIcons[entityId]) : null
+
+  const icon = CustomIcon
+    ? <CustomIcon className="w-full h-full" />
+    : isLocked
+      ? <Lock className="w-full h-full" />
+      : <LockOpen className="w-full h-full" />
+
   const handleToggle = useCallback(() => {
     if (isLocked) {
-      // Show confirm before unlocking
       setConfirmOpen(true)
     } else {
       callService('lock', 'lock', {}, entityId)
@@ -46,10 +54,7 @@ export function LockTile({ entityId }: LockTileProps) {
       <BaseTile
         isActive={true}
         activeColor={isLocked ? 'red' : 'green'}
-        icon={isLocked
-          ? <Lock className="w-full h-full" />
-          : <LockOpen className="w-full h-full" />
-        }
+        icon={icon}
         label={label}
         sublabel={isLocked ? 'Locked' : 'Unlocked'}
         onClick={handleToggle}

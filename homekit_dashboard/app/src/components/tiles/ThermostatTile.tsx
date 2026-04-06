@@ -10,6 +10,7 @@ import {
 import { useEntity } from '@/hooks/useEntities'
 import { useHA } from '@/hooks/useHAClient'
 import { entityLabel, formatTemp } from '@/lib/utils'
+import { getIconByName } from '@/lib/icons'
 import type { ClimateAttributes } from '@/types/ha-types'
 import { cn } from '@/lib/utils'
 
@@ -39,7 +40,7 @@ interface ThermostatTileProps {
 
 export function ThermostatTile({ entityId }: ThermostatTileProps) {
   const entity = useEntity(entityId)
-  const { callService } = useHA()
+  const { callService, entityIcons } = useHA()
   const [open, setOpen] = useState(false)
 
   if (!entity) return null
@@ -53,6 +54,9 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
   const targetTemp = attrs.temperature ?? 20
   const unit = attrs.unit_of_measurement ?? '°C'
   const modes = attrs.hvac_modes ?? []
+
+  const CustomIcon = entityIcons[entityId] ? getIconByName(entityIcons[entityId]) : null
+  const IconComp = CustomIcon ?? Thermometer
 
   const adjustTemp = useCallback(
     (delta: number) => {
@@ -77,7 +81,7 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
       <BaseTile
         isActive={isActive}
         activeColor={activeColor as 'amber' | 'blue' | 'purple'}
-        icon={<Thermometer className="w-full h-full" />}
+        icon={<IconComp className="w-full h-full" />}
         label={entityLabel(entityId, attrs.friendly_name)}
         sublabel={`${formatTemp(currentTemp, unit)} → ${formatTemp(targetTemp, unit)}`}
         onClick={() => setOpen(true)}

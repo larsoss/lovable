@@ -1,17 +1,8 @@
 import React, { useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
+import { useHA } from '@/hooks/useHAClient'
 
 export type ActiveColor = 'amber' | 'blue' | 'green' | 'red' | 'purple' | 'teal' | 'none'
-
-const ACTIVE_BG: Record<ActiveColor, string> = {
-  amber:  'bg-ios-amber/20',
-  blue:   'bg-ios-blue/20',
-  green:  'bg-ios-green/20',
-  red:    'bg-ios-red/20',
-  purple: 'bg-ios-purple/20',
-  teal:   'bg-ios-teal/20',
-  none:   '',
-}
 
 const ACTIVE_ICON: Record<ActiveColor, string> = {
   amber:  'text-ios-amber',
@@ -21,6 +12,17 @@ const ACTIVE_ICON: Record<ActiveColor, string> = {
   purple: 'text-ios-purple',
   teal:   'text-ios-teal',
   none:   'text-ios-secondary',
+}
+
+// Solid-mode active tint backgrounds
+const SOLID_ACTIVE_BG: Record<ActiveColor, string> = {
+  amber:  'bg-ios-amber/20',
+  blue:   'bg-ios-blue/20',
+  green:  'bg-ios-green/20',
+  red:    'bg-ios-red/20',
+  purple: 'bg-ios-purple/20',
+  teal:   'bg-ios-teal/20',
+  none:   '',
 }
 
 interface BaseTileProps {
@@ -46,6 +48,8 @@ export function BaseTile({
   className,
   children,
 }: BaseTileProps) {
+  const { theme } = useHA()
+  const isGlass = theme.tileStyle === 'glass'
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
@@ -70,7 +74,17 @@ export function BaseTile({
     didLongPress.current = false
   }, [onClick])
 
-  const colorClass = isActive ? activeColor : 'none'
+  const colorKey = isActive ? activeColor : 'none'
+
+  // Glass tile classes
+  const glassBase = isGlass
+    ? isActive
+      ? cn('tile-glass-active', activeColor !== 'none' && `tile-glass-${activeColor}`)
+      : 'tile-glass'
+    : cn(
+        isActive ? 'bg-ios-card-2' : 'bg-ios-card',
+        isActive && SOLID_ACTIVE_BG[activeColor],
+      )
 
   return (
     <div
@@ -86,14 +100,13 @@ export function BaseTile({
         'relative aspect-square rounded-2xl p-4 flex flex-col justify-between',
         'cursor-pointer select-none transition-all duration-150',
         'active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue',
-        isActive ? 'bg-ios-card-2' : 'bg-ios-card',
-        isActive && ACTIVE_BG[activeColor],
+        glassBase,
         className
       )}
     >
       {/* Top row: icon + active indicator */}
       <div className="flex items-start justify-between">
-        <div className={cn('w-8 h-8', isActive ? ACTIVE_ICON[colorClass] : 'text-ios-secondary')}>
+        <div className={cn('w-8 h-8', isActive ? ACTIVE_ICON[colorKey] : 'text-ios-secondary')}>
           {icon}
         </div>
         {isActive && (

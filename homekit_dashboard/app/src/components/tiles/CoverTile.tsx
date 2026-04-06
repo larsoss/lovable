@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider'
 import { useEntity } from '@/hooks/useEntities'
 import { useHA } from '@/hooks/useHAClient'
 import { entityLabel } from '@/lib/utils'
+import { getIconByName } from '@/lib/icons'
 import type { CoverAttributes } from '@/types/ha-types'
 
 interface CoverTileProps {
@@ -14,7 +15,7 @@ interface CoverTileProps {
 
 export function CoverTile({ entityId }: CoverTileProps) {
   const entity = useEntity(entityId)
-  const { callService } = useHA()
+  const { callService, entityIcons } = useHA()
   const [open, setOpen] = useState(false)
   const [localPosition, setLocalPosition] = useState(100)
   const [isDragging, setIsDragging] = useState(false)
@@ -30,6 +31,14 @@ export function CoverTile({ entityId }: CoverTileProps) {
   const sublabel = attrs.current_position !== undefined
     ? `${attrs.current_position}% open`
     : isOpen ? 'Open' : 'Closed'
+
+  const CustomIcon = entityIcons[entityId] ? getIconByName(entityIcons[entityId]) : null
+
+  const icon = CustomIcon
+    ? <CustomIcon className="w-full h-full" />
+    : isOpen
+      ? <PanelTop className="w-full h-full" />
+      : <PanelBottom className="w-full h-full" />
 
   const handleToggle = useCallback(() => {
     if (isOpen) {
@@ -65,10 +74,7 @@ export function CoverTile({ entityId }: CoverTileProps) {
         <BaseTile
           isActive={isOpen}
           activeColor="teal"
-          icon={isOpen
-            ? <PanelTop className="w-full h-full" />
-            : <PanelBottom className="w-full h-full" />
-          }
+          icon={icon}
           label={label}
           sublabel={sublabel}
           onClick={handleToggle}

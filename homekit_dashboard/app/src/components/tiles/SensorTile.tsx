@@ -11,10 +11,12 @@ import {
 } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import { useEntity } from '@/hooks/useEntities'
+import { useHA } from '@/hooks/useHAClient'
 import { entityLabel } from '@/lib/utils'
+import { getIconByName } from '@/lib/icons'
 import type { SensorAttributes } from '@/types/ha-types'
 
-function getIcon(deviceClass: string | undefined) {
+function getDefaultIcon(deviceClass: string | undefined) {
   switch (deviceClass) {
     case 'temperature':    return <Thermometer className="w-full h-full" />
     case 'humidity':       return <Droplets className="w-full h-full" />
@@ -40,6 +42,7 @@ interface SensorTileProps {
 
 export function SensorTile({ entityId }: SensorTileProps) {
   const entity = useEntity(entityId)
+  const { entityIcons } = useHA()
 
   if (!entity) return null
 
@@ -48,7 +51,6 @@ export function SensorTile({ entityId }: SensorTileProps) {
   const unit = attrs.unit_of_measurement ?? ''
   const label = entityLabel(entityId, attrs.friendly_name)
 
-  // For binary sensors show on/off state
   const isBinary = entityId.startsWith('binary_sensor.')
   const isActive = isBinary && entity.state === 'on'
 
@@ -56,11 +58,16 @@ export function SensorTile({ entityId }: SensorTileProps) {
     ? entity.state === 'on' ? 'On' : 'Off'
     : `${entity.state}${unit ? ' ' + unit : ''}`
 
+  const CustomIconComp = entityIcons[entityId] ? getIconByName(entityIcons[entityId]) : null
+  const icon = CustomIconComp
+    ? <CustomIconComp className="w-full h-full" />
+    : getDefaultIcon(deviceClass)
+
   return (
     <BaseTile
       isActive={isActive}
       activeColor={isBinary ? 'blue' : 'none'}
-      icon={getIcon(deviceClass)}
+      icon={icon}
       label={label}
       sublabel={valueDisplay}
     />

@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider'
 import { useEntity } from '@/hooks/useEntities'
 import { useHA } from '@/hooks/useHAClient'
 import { entityLabel, brightnessToPercent, percentToBrightness } from '@/lib/utils'
+import { getIconByName } from '@/lib/icons'
 import type { LightAttributes } from '@/types/ha-types'
 
 interface LightTileProps {
@@ -14,7 +15,7 @@ interface LightTileProps {
 
 export function LightTile({ entityId }: LightTileProps) {
   const entity = useEntity(entityId)
-  const { callService } = useHA()
+  const { callService, entityIcons } = useHA()
   const [open, setOpen] = useState(false)
   const [localBrightness, setLocalBrightness] = useState(100)
   const [isDragging, setIsDragging] = useState(false)
@@ -31,6 +32,9 @@ export function LightTile({ entityId }: LightTileProps) {
   const sublabel = isOn
     ? attrs.brightness !== undefined ? `${brightnessToPercent(attrs.brightness)}%` : 'On'
     : 'Off'
+
+  const CustomIcon = entityIcons[entityId] ? getIconByName(entityIcons[entityId]) : null
+  const IconComp = CustomIcon ?? Lightbulb
 
   const handleToggle = useCallback(() => {
     callService('light', isOn ? 'turn_off' : 'turn_on', {}, entityId)
@@ -62,7 +66,7 @@ export function LightTile({ entityId }: LightTileProps) {
         <BaseTile
           isActive={isOn}
           activeColor="amber"
-          icon={<Lightbulb className="w-full h-full" fill={isOn ? 'currentColor' : 'none'} />}
+          icon={<IconComp className="w-full h-full" fill={!CustomIcon && isOn ? 'currentColor' : 'none'} />}
           label={entityLabel(entityId, attrs.friendly_name)}
           sublabel={sublabel}
           onClick={handleToggle}

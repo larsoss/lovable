@@ -15,7 +15,8 @@
   }
 
   body {
-    background-color: #1C1C1E;
+    /* Background controlled by --theme-bg CSS variable set from JS */
+    background: var(--theme-bg, radial-gradient(ellipse at 25% 0%, #2a2a3c 0%, #1C1C1E 55%, #111111 100%));
     color: #EBEBF5;
     min-height: 100dvh;
     /* iOS safe areas */
@@ -37,4 +38,27 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ── Glassmorphism tile classes ─────────────────────────────────────────── */
+@layer components {
+  .tile-glass {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .tile-glass-active {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  /* Active tinted backgrounds for glass tiles */
+  .tile-glass-amber  { background: rgba(255, 159,  10, 0.18); }
+  .tile-glass-blue   { background: rgba( 10, 132, 255, 0.18); }
+  .tile-glass-green  { background: rgba( 48, 209,  88, 0.18); }
+  .tile-glass-red    { background: rgba(255,  69,  58, 0.18); }
+  .tile-glass-teal   { background: rgba( 90, 200, 250, 0.18); }
+  .tile-glass-purple { background: rgba(191,  90, 242, 0.18); }
 }
