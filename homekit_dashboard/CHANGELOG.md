@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.4] - 2026-04-06
+
+- Add CHANGELOG.md and auto-update hook on every commit
+
 ## [1.0.3] - 2026-04-06
 
 - Add area management with entity assignment settings
