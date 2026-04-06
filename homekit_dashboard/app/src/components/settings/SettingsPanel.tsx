@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { ArrowLeft, Plus, Pencil, Trash2, Search, X, Check, Star } from 'lucide-react'
+import { ArrowLeft, Plus, Pencil, Trash2, Search, X, Check, Star, EyeOff, Eye } from 'lucide-react'
 import {
   Lightbulb, ToggleRight, Thermometer, Lock, Blinds, Activity,
 } from 'lucide-react'
@@ -486,6 +486,8 @@ export function SettingsPanel({ onClose }: Props) {
     theme,
     favorites,
     toggleFavorite,
+    hiddenEntities,
+    toggleHideEntity,
   } = useHA()
 
   const [section, setSection] = useState<'areas' | 'appearance'>('areas')
@@ -714,6 +716,45 @@ export function SettingsPanel({ onClose }: Props) {
                 </div>
               )
             })
+          )}
+
+          {/* Hidden entities */}
+          {hiddenEntities.length > 0 && (
+            <div className="bg-ios-card rounded-2xl overflow-hidden mt-4">
+              <div className="px-4 py-3 border-b border-ios-separator flex items-center gap-2">
+                <EyeOff className="w-4 h-4 text-ios-secondary" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-ios-label">Hidden in dashboard</p>
+                  <p className="text-xs text-ios-secondary mt-0.5">{hiddenEntities.length} hidden</p>
+                </div>
+              </div>
+              {hiddenEntities.map((eid) => {
+                const entity = entities[eid]
+                const label = entity
+                  ? entityLabel(eid, entity.attributes.friendly_name)
+                  : eid
+                return (
+                  <div
+                    key={eid}
+                    className="flex items-center gap-3 px-4 py-2.5 border-b border-ios-separator/40 last:border-0"
+                  >
+                    <EyeOff className="w-4 h-4 text-ios-secondary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-ios-label truncate">{label}</p>
+                      <p className="text-xs text-ios-secondary truncate">{eid}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleHideEntity(eid)}
+                      title="Unhide"
+                      className={cn('flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors', accentCls.bgLight, accentCls.text)}
+                    >
+                      <Eye className="w-3 h-3" />
+                      Show
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           )}
 
           {/* Unassigned entities */}

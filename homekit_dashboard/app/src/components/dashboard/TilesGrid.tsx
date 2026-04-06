@@ -12,7 +12,7 @@ import { useHA } from '@/hooks/useHAClient'
 import { GRID_COLS } from '@/lib/theme-storage'
 import { SPAN_CLASSES, type TileSpan } from '@/lib/tile-sizes'
 import { ICON_OPTIONS } from '@/lib/icons'
-import { Activity, X } from 'lucide-react'
+import { Activity, EyeOff, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const SUPPORTED_DOMAINS = new Set([
@@ -109,7 +109,7 @@ interface EditOverlayProps {
 }
 
 function EditOverlay({ entityId }: EditOverlayProps) {
-  const { entityTileSizes, setEntityTileSize } = useHA()
+  const { entityTileSizes, setEntityTileSize, toggleHideEntity } = useHA()
   const [showIconPicker, setShowIconPicker] = useState(false)
   const current = entityTileSizes[entityId] ?? '1x1'
 
@@ -133,13 +133,22 @@ function EditOverlay({ entityId }: EditOverlayProps) {
             </button>
           ))}
         </div>
-        {/* Icon button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowIconPicker(true) }}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/20 text-white hover:bg-white/30"
-        >
-          Icon
-        </button>
+        {/* Icon + Hide buttons */}
+        <div className="flex gap-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowIconPicker(true) }}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/20 text-white hover:bg-white/30"
+          >
+            Icon
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleHideEntity(entityId) }}
+            className="px-2 py-1.5 rounded-lg text-xs font-medium bg-red-500/60 text-white hover:bg-red-500/80 flex items-center gap-1"
+            title="Hide from dashboard"
+          >
+            <EyeOff className="w-3 h-3" />
+          </button>
+        </div>
       </div>
       {showIconPicker && (
         <IconPicker entityId={entityId} onClose={() => setShowIconPicker(false)} />
@@ -150,23 +159,69 @@ function EditOverlay({ entityId }: EditOverlayProps) {
 
 interface TilesGridProps {
   entities: HassEntity[]
+  contextId?: string   // area_id or 'favorites' — used for drag-reorder persistence
   className?: string
 }
 
-export function TilesGrid({ entities, className }: TilesGridProps) {
-  const { theme, isEditMode, entityTileSizes } = useHA()
-  const visible = entities.filter((e) => SUPPORTED_DOMAINS.has(getDomain(e.entity_id)))
+export function TilesGrid({ entities, contextId, className }: TilesGridProps) {
+  const { theme, isEditMode, entityTileSizes, hiddenEntities, entityOrder, setContextEntityOrder } = useHA()
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-  if (visible.length === 0) return null
+  // Filter hidden + unsupported
+  const base = entities.filter(
+    (e) => SUPPORTED_DOMAINS.has(getDomain(e.entity_id)) && !hiddenEntities.includes(e.entity_id)
+  )
+
+  // Apply stored order for this context
+  const ordered = (() => {
+    if (!contextId) return base
+    const order = entityOrder[contextId]
+    if (!order || order.length === 0) return base
+    const map = new Map(base.map((e) => [e.entity_id, e]))
+    const sorted: HassEntity[] = []
+    order.forEach((id) => { const e = map.get(id); if (e) sorted.push(e) })
+    // Append any new entities not yet in saved order
+    base.forEach((e) => { if (!order.includes(e.entity_id)) sorted.push(e) })
+    return sorted
+  })()
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId || !contextId) return
+    const ids = ordered.map((e) => e.entity_id)
+    const from = ids.indexOf(dragId)
+    const to = ids.indexOf(targetId)
+    if (from === -1 || to === -1) return
+    const newOrder = [...ids]
+    newOrder.splice(from, 1)
+    newOrder.splice(to, 0, dragId)
+    setContextEntityOrder(contextId, newOrder)
+    setDragId(null)
+    setDragOverId(null)
+  }
+
+  if (ordered.length === 0) return null
 
   return (
     <div className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize], className)}>
-      {visible.map((entity) => {
+      {ordered.map((entity) => {
         const span = entityTileSizes[entity.entity_id] ?? '1x1'
+        const isDragging = dragId === entity.entity_id
+        const isDragOver = dragOverId === entity.entity_id && dragId !== entity.entity_id
         return (
           <div
             key={entity.entity_id}
-            className={cn('relative', SPAN_CLASSES[span])}
+            draggable={isEditMode && !!contextId}
+            onDragStart={() => setDragId(entity.entity_id)}
+            onDragOver={(e) => { e.preventDefault(); if (dragId) setDragOverId(entity.entity_id) }}
+            onDrop={() => handleDrop(entity.entity_id)}
+            onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+            className={cn(
+              'relative transition-all duration-150',
+              SPAN_CLASSES[span],
+              isDragging && 'opacity-40 scale-95',
+              isDragOver && 'ring-2 ring-ios-blue ring-offset-1 ring-offset-transparent rounded-2xl',
+            )}
           >
             <Tile entity={entity} />
             {isEditMode && <EditOverlay entityId={entity.entity_id} />}

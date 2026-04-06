@@ -35,6 +35,15 @@ import {
   type EntityTileSizes,
   type TileSpan,
 } from '@/lib/tile-sizes'
+import {
+  getHiddenEntities,
+  saveHiddenEntities,
+} from '@/lib/hidden-storage'
+import {
+  getEntityOrder,
+  saveEntityOrder,
+  type EntityOrderMap,
+} from '@/lib/entity-order-storage'
 import type {
   HassEntity,
   HassArea,
@@ -81,6 +90,12 @@ interface HAContextValue {
   toggleEditMode: () => void
   entityTileSizes: EntityTileSizes
   setEntityTileSize: (entityId: string, span: TileSpan) => void
+  // Hidden entities (dashboard-only)
+  hiddenEntities: string[]
+  toggleHideEntity: (entityId: string) => void
+  // Entity order per area/context
+  entityOrder: EntityOrderMap
+  setContextEntityOrder: (contextId: string, order: string[]) => void
 }
 
 const HAContext = createContext<HAContextValue>({
@@ -108,6 +123,10 @@ const HAContext = createContext<HAContextValue>({
   toggleEditMode: () => undefined,
   entityTileSizes: {},
   setEntityTileSize: () => undefined,
+  hiddenEntities: [],
+  toggleHideEntity: () => undefined,
+  entityOrder: {},
+  setContextEntityOrder: () => undefined,
 })
 
 export function HAProvider({ children }: { children: React.ReactNode }) {
@@ -127,6 +146,8 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
   const [areaOrder, setAreaOrderState] = useState<string[]>(getAreaOrder)
   const [isEditMode, setIsEditMode] = useState(false)
   const [entityTileSizes, setEntityTileSizesState] = useState<EntityTileSizes>(getTileSizes)
+  const [hiddenEntities, setHiddenEntitiesState] = useState<string[]>(getHiddenEntities)
+  const [entityOrder, setEntityOrderState] = useState<EntityOrderMap>(getEntityOrder)
   const clientRef = useRef<HAClient | null>(null)
 
   // Apply background CSS variable whenever bgStyle changes
@@ -264,6 +285,24 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
     setIsEditMode((prev) => !prev)
   }, [])
 
+  const toggleHideEntity = useCallback((entityId: string) => {
+    setHiddenEntitiesState((prev) => {
+      const next = prev.includes(entityId)
+        ? prev.filter((id) => id !== entityId)
+        : [...prev, entityId]
+      saveHiddenEntities(next)
+      return next
+    })
+  }, [])
+
+  const setContextEntityOrder = useCallback((contextId: string, order: string[]) => {
+    setEntityOrderState((prev) => {
+      const next = { ...prev, [contextId]: order }
+      saveEntityOrder(next)
+      return next
+    })
+  }, [])
+
   const setEntityTileSize = useCallback((entityId: string, span: TileSpan) => {
     setEntityTileSizesState((prev) => {
       const next = { ...prev, [entityId]: span }
@@ -312,6 +351,10 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
         toggleEditMode,
         entityTileSizes,
         setEntityTileSize,
+        hiddenEntities,
+        toggleHideEntity,
+        entityOrder,
+        setContextEntityOrder,
       }}
     >
       {children}

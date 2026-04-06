@@ -6,6 +6,7 @@ import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { useHA } from '@/hooks/useHAClient'
 import { getDomain } from '@/lib/utils'
 import { GRID_COLS } from '@/lib/theme-storage'
+import { SPAN_CLASSES, type TileSpan } from '@/lib/tile-sizes'
 import {
   Wifi, Activity, GripVertical, Star,
   Home, Sofa, BedDouble, ChefHat, Bath, Car, Flower2, Tv, Dumbbell,
@@ -14,6 +15,13 @@ import {
 import { cn } from '@/lib/utils'
 import type { HassEntity } from '@/types/ha-types'
 import type { LucideIcon } from 'lucide-react'
+
+const SPAN_OPTIONS: { span: TileSpan; label: string }[] = [
+  { span: '1x1', label: '1×1' },
+  { span: '2x1', label: '2×1' },
+  { span: '1x2', label: '1×2' },
+  { span: '2x2', label: '2×2' },
+]
 
 const TILE_DOMAINS = new Set([
   'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
@@ -71,12 +79,13 @@ interface AreaCardProps {
 }
 
 function AreaCard({
-  areaName, entities, isDragOver,
+  areaId, areaName, entities, isDragOver,
   onDragStart, onDragOver, onDrop, onDragEnd, onClick,
 }: AreaCardProps) {
-  const { theme } = useHA()
+  const { theme, isEditMode, entityTileSizes, setEntityTileSize } = useHA()
   const isGlass = theme.tileStyle === 'glass'
   const opacity = theme.tileOpacity / 100
+  const span = entityTileSizes[areaId] ?? '1x1'
 
   const lightsOn = entities.filter(
     (e) => getDomain(e.entity_id) === 'light' && e.state === 'on'
@@ -128,16 +137,18 @@ function AreaCard({
 
   return (
     <div
-      draggable
+      draggable={isEditMode}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      onClick={onClick}
+      onClick={() => { if (!isEditMode) onClick() }}
       className={cn(
         'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between aspect-square',
-        'cursor-pointer select-none transition-all duration-150 active:scale-95',
-        isDragOver && 'opacity-50 scale-[0.97]'
+        'cursor-pointer select-none transition-all duration-150',
+        !isEditMode && 'active:scale-95',
+        isDragOver && 'ring-2 ring-ios-blue ring-offset-1 ring-offset-transparent opacity-60',
+        SPAN_CLASSES[span],
       )}
       style={bgStyle}
     >
@@ -147,10 +158,9 @@ function AreaCard({
           'w-6 h-6',
           hasActivity ? 'text-ios-amber' : 'text-ios-secondary'
         )} />
-        <GripVertical
-          className="w-4 h-4 text-ios-secondary/30 cursor-grab active:cursor-grabbing"
-          onClick={(e) => e.stopPropagation()}
-        />
+        {isEditMode && (
+          <GripVertical className="w-4 h-4 text-white/50 cursor-grab active:cursor-grabbing" />
+        )}
       </div>
 
       {/* Middle: activity badges */}
@@ -180,6 +190,26 @@ function AreaCard({
           {activeCount > 0 && ` · ${activeCount} on`}
         </p>
       </div>
+
+      {/* Edit mode overlay */}
+      {isEditMode && (
+        <div className="absolute inset-0 z-10 rounded-2xl flex flex-col items-center justify-center gap-1.5 bg-black/50 backdrop-blur-[2px]">
+          <div className="flex flex-wrap gap-1 justify-center px-2">
+            {SPAN_OPTIONS.map(({ span: s, label }) => (
+              <button
+                key={s}
+                onClick={(e) => { e.stopPropagation(); setEntityTileSize(areaId, s) }}
+                className={cn(
+                  'px-2 py-1 rounded-lg text-xs font-medium transition-all',
+                  span === s ? 'bg-ios-blue text-white' : 'bg-white/20 text-white hover:bg-white/30'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -266,7 +296,7 @@ function HomeView({ onShowSettings, onTabChange }: HomeViewProps) {
             <h2 className="text-base font-bold text-ios-label">Favorites</h2>
             <span className="text-xs text-ios-secondary ml-1">{favoriteEntities.length}</span>
           </div>
-          <TilesGrid entities={favoriteEntities} />
+          <TilesGrid entities={favoriteEntities} contextId="favorites" />
         </div>
       )}
 
@@ -339,7 +369,7 @@ export function Dashboard() {
       {activeTab === 'home'
         ? <HomeView onShowSettings={() => setShowSettings(true)} onTabChange={setActiveTab} />
         : filteredEntities.length > 0
-          ? <TilesGrid entities={filteredEntities} className="pt-3" />
+          ? <TilesGrid entities={filteredEntities} contextId={activeTab} className="pt-3" />
           : <EmptyState />
       }
     </div>
