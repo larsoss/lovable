@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.20] - 2026-04-06
+
+- feat: hide entities, drag-reorder tiles, edit mode on room cards
+
 ## [1.0.19] - 2026-04-06
 
 - chore: update changelog
