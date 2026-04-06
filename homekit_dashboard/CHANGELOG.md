@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.32] - 2026-04-06
+
+- fix: show person cards on Home view without area assignment
+
 ## [1.0.31] - 2026-04-06
 
 - chore: update changelog
