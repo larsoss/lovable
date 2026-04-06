@@ -1,0 +1,29 @@
+# Changelog
+
+## [1.0.3] - 2026-04-06
+
+- Add area management with entity assignment settings
+- Settings panel (gear icon) to assign entities to areas
+- Searchable entity picker per area
+- Custom areas via localStorage
+- Area-based tabs on dashboard (All + one per area)
+- HA area registry + entity registry loaded on connect
+
+## [1.0.2] - 2026-04-06
+
+- Fix TypeScript build errors (useHAClient.ts → .tsx, unused import)
+- Add package-lock.json files for reproducible Docker builds
+
+## [1.0.1] - 2026-04-04
+
+- Fix repository structure for valid HA add-on repository
+- Add repository.json and move add-on into homekit_dashboard/ subdirectory
+
+## [1.0.0] - 2026-04-04
+
+- Initial release
+- HomeKit-style dark dashboard for Home Assistant
+- Tile types: Light (brightness), Switch, Thermostat, Climate, Lock, Cover, Sensor
+- Real-time WebSocket connection via Supervisor token (zero config)
+- Room tabs: All / Lights / Climate / Security / Switches / Covers / Sensors
+- Node.js proxy server with automatic HA authentication
