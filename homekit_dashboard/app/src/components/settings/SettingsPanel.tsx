@@ -24,7 +24,7 @@ import {
 import type { CustomArea, EntityAreaOverrides } from '@/lib/area-storage'
 
 const TILE_DOMAINS = new Set([
-  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
+  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor', 'person',
 ])
 
 const DOMAIN_COLORS: Record<string, string> = {

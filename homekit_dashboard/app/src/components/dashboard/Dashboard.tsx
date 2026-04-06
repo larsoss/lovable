@@ -24,7 +24,7 @@ const SPAN_OPTIONS: { span: TileSpan; label: string }[] = [
 ]
 
 const TILE_DOMAINS = new Set([
-  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
+  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor', 'person',
 ])
 
 function ConnectingScreen() {

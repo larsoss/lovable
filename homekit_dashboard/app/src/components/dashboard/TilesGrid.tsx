@@ -7,6 +7,7 @@ import { ThermostatTile } from '@/components/tiles/ThermostatTile'
 import { LockTile } from '@/components/tiles/LockTile'
 import { CoverTile } from '@/components/tiles/CoverTile'
 import { SensorTile } from '@/components/tiles/SensorTile'
+import { PersonTile } from '@/components/tiles/PersonTile'
 import { BaseTile } from '@/components/tiles/BaseTile'
 import { useHA } from '@/hooks/useHAClient'
 import { GRID_COLS } from '@/lib/theme-storage'
@@ -16,7 +17,7 @@ import { Activity, EyeOff, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const SUPPORTED_DOMAINS = new Set([
-  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
+  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor', 'person',
 ])
 
 const SPAN_OPTIONS: { span: TileSpan; label: string }[] = [
@@ -37,6 +38,7 @@ function Tile({ entity }: { entity: HassEntity }) {
     case 'cover':         return <CoverTile entityId={entity.entity_id} />
     case 'sensor':
     case 'binary_sensor': return <SensorTile entityId={entity.entity_id} />
+    case 'person':        return <PersonTile entityId={entity.entity_id} />
     default:
       return (
         <BaseTile
@@ -205,7 +207,8 @@ export function TilesGrid({ entities, contextId, className }: TilesGridProps) {
   return (
     <div className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize], className)}>
       {ordered.map((entity) => {
-        const span = entityTileSizes[entity.entity_id] ?? '1x1'
+        const defaultSpan = getDomain(entity.entity_id) === 'person' ? '2x1' : '1x1'
+        const span = entityTileSizes[entity.entity_id] ?? defaultSpan
         const isDragging = dragId === entity.entity_id
         const isDragOver = dragOverId === entity.entity_id && dragId !== entity.entity_id
         return (

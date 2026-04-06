@@ -4,7 +4,7 @@ import { useHA } from '@/hooks/useHAClient'
 import { getDomain } from '@/lib/utils'
 
 const TILE_DOMAINS = new Set([
-  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
+  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor', 'person',
 ])
 
 interface RoomTabsProps {
