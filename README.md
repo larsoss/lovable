@@ -5,9 +5,11 @@
 
 ---
 
-# HomeKit Dashboard — HA Add-on Repository
+![The-One Dashboard](homekit_dashboard/logo.png)
 
-A HomeKit-style Home Assistant dashboard add-on. Displays all your entities as interactive glass tiles organized by area, with real-time WebSocket updates.
+# The-One Dashboard — HA Add-on Repository
+
+A beautiful, fully customizable Home Assistant dashboard add-on. Displays all your entities as interactive glass tiles organized by area, with real-time WebSocket updates, color light controls, and a smooth Apple Home-inspired UI.
 
 ## Installation
 
@@ -15,25 +17,28 @@ A HomeKit-style Home Assistant dashboard add-on. Displays all your entities as i
 2. Click the **⋮** menu (top right) → **Repositories**
 3. Paste: `https://github.com/larsoss/lovable`
 4. Click **Add** → **Close**
-5. Find **HomeKit Dashboard** in the store and click **Install**
+5. Find **The-One Dashboard** in the store and click **Install**
 6. Click **Start** — the dashboard appears in your sidebar
 
 ## Add-ons
 
 | Add-on | Description |
 |--------|-------------|
-| [HomeKit Dashboard](homekit_dashboard/) | HomeKit-style dashboard for all your HA entities |
+| [The-One Dashboard](homekit_dashboard/) | Beautiful glassmorphism dashboard for all your HA entities |
 
-## Status
+## Features
 
 | Feature | Status |
 |---------|--------|
-| Glass tile UI | ✅ Done |
-| Area-based Home view | ✅ Done |
+| Glassmorphism tile UI | ✅ Done |
+| Area cards on Home view | ✅ Done |
 | Customizable themes & accent colors | ✅ Done |
 | Custom entity icons | ✅ Done |
 | Adjustable tile size, shape, opacity | ✅ Done |
 | Real-time WebSocket state updates | ✅ Done |
-| Drag-and-drop layout editing | 🔄 Planned |
-| Favorites section | 🔄 Planned |
-| Light/dark mode toggle | 🔄 Planned |
+| Drag-and-drop tile reordering | ✅ Done |
+| Favorites section | ✅ Done |
+| Color picker for Hue/color lights | ✅ Done |
+| Edit mode (resize, reorder, hide tiles) | ✅ Done |
+| Hide entities from dashboard | ✅ Done |
+| Status chips (lights on, switches on…) | ✅ Done |

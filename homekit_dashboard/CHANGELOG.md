@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.22] - 2026-04-06
+
+- chore: update changelog
+
 ## [1.0.21] - 2026-04-06
 
 - chore: update changelog
