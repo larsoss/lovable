@@ -7,37 +7,26 @@ import { LockTile } from '@/components/tiles/LockTile'
 import { CoverTile } from '@/components/tiles/CoverTile'
 import { SensorTile } from '@/components/tiles/SensorTile'
 import { BaseTile } from '@/components/tiles/BaseTile'
+import { useHA } from '@/hooks/useHAClient'
+import { GRID_COLS } from '@/lib/theme-storage'
 import { Activity } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-// Domains that are surfaced in the tile grid
 const SUPPORTED_DOMAINS = new Set([
-  'light',
-  'switch',
-  'input_boolean',
-  'climate',
-  'lock',
-  'cover',
-  'sensor',
-  'binary_sensor',
+  'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor',
 ])
 
 function Tile({ entity }: { entity: HassEntity }) {
   const domain = getDomain(entity.entity_id)
   switch (domain) {
-    case 'light':
-      return <LightTile entityId={entity.entity_id} />
+    case 'light':         return <LightTile entityId={entity.entity_id} />
     case 'switch':
-    case 'input_boolean':
-      return <SwitchTile entityId={entity.entity_id} />
-    case 'climate':
-      return <ThermostatTile entityId={entity.entity_id} />
-    case 'lock':
-      return <LockTile entityId={entity.entity_id} />
-    case 'cover':
-      return <CoverTile entityId={entity.entity_id} />
+    case 'input_boolean': return <SwitchTile entityId={entity.entity_id} />
+    case 'climate':       return <ThermostatTile entityId={entity.entity_id} />
+    case 'lock':          return <LockTile entityId={entity.entity_id} />
+    case 'cover':         return <CoverTile entityId={entity.entity_id} />
     case 'sensor':
-    case 'binary_sensor':
-      return <SensorTile entityId={entity.entity_id} />
+    case 'binary_sensor': return <SensorTile entityId={entity.entity_id} />
     default:
       return (
         <BaseTile
@@ -51,23 +40,17 @@ function Tile({ entity }: { entity: HassEntity }) {
 
 interface TilesGridProps {
   entities: HassEntity[]
+  className?: string
 }
 
-export function TilesGrid({ entities }: TilesGridProps) {
+export function TilesGrid({ entities, className }: TilesGridProps) {
+  const { theme } = useHA()
   const visible = entities.filter((e) => SUPPORTED_DOMAINS.has(getDomain(e.entity_id)))
 
-  if (visible.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-ios-secondary">
-        <Activity className="w-12 h-12 mb-4 opacity-40" />
-        <p className="text-base font-medium">No entities here</p>
-        <p className="text-sm mt-1 opacity-70">Try a different tab or add entities in Home Assistant</p>
-      </div>
-    )
-  }
+  if (visible.length === 0) return null
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
+    <div className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize], className)}>
       {visible.map((entity) => (
         <Tile key={entity.entity_id} entity={entity} />
       ))}

@@ -1,47 +1,62 @@
+> **⚠️ AI Hobby Project — Work in Progress**
+> Built with Claude AI. Actively under development — expect changes and occasional rough edges.
+
+---
+
 # HomeKit Dashboard — Home Assistant Add-on
 
-A HomeKit-style dashboard for Home Assistant. Displays all your entities (lights, thermostats, locks, switches, covers, sensors) as interactive tiles in Apple Home's dark aesthetic.
+A HomeKit-inspired dashboard for Home Assistant. Shows all your entities as glassmorphism tiles organized by area, with full customization.
 
 ## Features
 
-- **HomeKit-style UI** — dark iOS colour palette, square tiles, smooth interactions
-- **All entity types** — lights (brightness), thermostats (temperature + mode), locks, switches, covers (position), sensors
-- **Real-time** — WebSocket connection to HA for instant state updates
-- **Zero configuration** — automatically connects via the HA Supervisor token
-- **Room tabs** — filter by domain (All / Lights / Climate / Security / Switches / Covers / Sensors)
+- **Area-based Home view** — entities grouped by room, just like Apple Home
+- **Glassmorphism tiles** — frosted glass effect with configurable opacity
+- **Real-time updates** — WebSocket connection for instant state changes
+- **Zero configuration** — auto-connects via HA Supervisor token
+- **All entity types** — lights (brightness), thermostats, locks, switches, covers, sensors
+- **Fully customizable** — accent color, tile style, shape, size, icon size, opacity
+- **Custom entity icons** — pick any icon from 42 options per entity
+- **Responsive** — works on desktop, tablet, and mobile
 
 ## Installation
 
-### Option 1: Custom Repository (recommended)
-
 1. In Home Assistant go to **Settings → Add-ons → Add-on Store**
 2. Click the **⋮** menu → **Repositories**
-3. Add: `https://github.com/YOUR_USERNAME/homekit-dashboard`
-4. Find **HomeKit Dashboard** in the store and click **Install**
-5. Click **Start**
-6. The dashboard appears in your HA sidebar
+3. Add: `https://github.com/larsoss/lovable`
+4. Find **HomeKit Dashboard** → **Install** → **Start**
+5. The dashboard appears in your HA sidebar
 
-### Option 2: Local Add-on
+## Customization (Settings ⚙️)
 
-1. Copy this folder to `/config/addons/homekit_dashboard/` on your HA host
-2. In Add-on Store, click **⋮** → **Check for updates**
-3. Find **HomeKit Dashboard** (Local) → **Install** → **Start**
+### Areas tab
+- Assign entities to rooms (auto-imported from HA area registry)
+- Create custom areas
+- Tap any entity's icon to pick a custom icon
+
+### Appearance tab
+| Setting | Options |
+|---------|---------|
+| Accent Color | Blue, Teal, Purple, Green, Amber |
+| Tile Style | Glass (frosted) · Solid |
+| Tile Shape | Square · Rectangle |
+| Tile Size | Compact · Normal · Large |
+| Icon Size | S · M · L |
+| Tile Opacity | 10% – 100% slider |
+| Background | Dark · Black · Navy · Slate |
 
 ## Usage
 
-The dashboard auto-populates with all your entities. No login or token entry required.
-
-- **Tap** a light/switch/lock/cover tile to toggle it
-- **Long-press** a light or cover tile to open a brightness/position slider
-- **Tap** a thermostat tile to open temperature and mode controls
-- **Tap** a lock tile — shows a confirmation dialog before unlocking
+- **Tap** a light/switch/lock/cover tile → toggle
+- **Long-press** a light or cover → brightness/position slider
+- **Tap** a thermostat → temperature & mode dialog
+- **Tap** a lock → unlock confirmation dialog
 
 ## Development
 
 ```bash
-# Run the proxy server locally (requires SUPERVISOR_TOKEN env var)
+# Proxy server (requires SUPERVISOR_TOKEN)
 cd server && npm install && SUPERVISOR_TOKEN=your_token node server.js
 
-# Run the React dev server
+# React dev server
 cd app && npm install && npm run dev
 ```

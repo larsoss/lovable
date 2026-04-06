@@ -7,6 +7,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useHA } from '@/hooks/useHAClient'
 import { entityLabel, getDomain } from '@/lib/utils'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ICON_OPTIONS, getIconByName } from '@/lib/icons'
 import {
@@ -16,6 +17,9 @@ import {
   type AccentColor,
   type TileStyle,
   type BgStyle,
+  type TileSize,
+  type TileShape,
+  type IconSize,
 } from '@/lib/theme-storage'
 import type { CustomArea, EntityAreaOverrides } from '@/lib/area-storage'
 
@@ -301,6 +305,63 @@ const BG_OPTIONS: Array<{ id: BgStyle; label: string }> = [
   { id: 'slate', label: 'Slate' },
 ]
 
+const TILE_SIZE_OPTIONS: Array<{ id: TileSize; label: string; desc: string }> = [
+  { id: 'compact', label: 'Compact', desc: 'More tiles' },
+  { id: 'normal',  label: 'Normal',  desc: 'Default' },
+  { id: 'large',   label: 'Large',   desc: 'Fewer tiles' },
+]
+
+const TILE_SHAPE_OPTIONS: Array<{ id: TileShape; label: string }> = [
+  { id: 'square', label: 'Square' },
+  { id: 'rect',   label: 'Rectangle' },
+]
+
+const ICON_SIZE_OPTIONS: Array<{ id: IconSize; label: string }> = [
+  { id: 'small',  label: 'S' },
+  { id: 'medium', label: 'M' },
+  { id: 'large',  label: 'L' },
+]
+
+function OptionRow<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  accentCls,
+}: {
+  label: string
+  options: Array<{ id: T; label: string; desc?: string }>
+  value: T
+  onChange: (v: T) => void
+  accentCls: { bgLight: string; text: string }
+}) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-ios-label mb-2">{label}</p>
+      <div className="flex gap-2">
+        {options.map((opt) => {
+          const isSelected = value === opt.id
+          return (
+            <button
+              key={opt.id}
+              onClick={() => onChange(opt.id)}
+              className={cn(
+                'flex-1 py-2.5 rounded-xl flex flex-col items-center gap-0.5 text-sm font-medium transition-all border',
+                isSelected
+                  ? cn('border-white/20 text-ios-label', accentCls.bgLight)
+                  : 'border-transparent text-ios-secondary bg-ios-card-2/50 hover:bg-ios-card-2'
+              )}
+            >
+              <span>{opt.label}</span>
+              {opt.desc && <span className="text-[10px] text-ios-secondary font-normal">{opt.desc}</span>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function AppearanceSection() {
   const { theme, setTheme } = useHA()
   const accentCls = ACCENT_CLASSES[theme.accent]
@@ -331,28 +392,54 @@ function AppearanceSection() {
         </div>
       </div>
 
-      {/* Tile style */}
+      {/* Tile style, shape, size, icon */}
+      <div className="bg-ios-card rounded-2xl p-4 space-y-4">
+        <OptionRow
+          label="Tile Style"
+          options={TILE_STYLE_OPTIONS}
+          value={theme.tileStyle}
+          onChange={(v) => setTheme({ ...theme, tileStyle: v })}
+          accentCls={accentCls}
+        />
+        <OptionRow
+          label="Tile Shape"
+          options={TILE_SHAPE_OPTIONS}
+          value={theme.tileShape}
+          onChange={(v) => setTheme({ ...theme, tileShape: v })}
+          accentCls={accentCls}
+        />
+        <OptionRow
+          label="Tile Size"
+          options={TILE_SIZE_OPTIONS}
+          value={theme.tileSize}
+          onChange={(v) => setTheme({ ...theme, tileSize: v })}
+          accentCls={accentCls}
+        />
+        <OptionRow
+          label="Icon Size"
+          options={ICON_SIZE_OPTIONS}
+          value={theme.iconSize}
+          onChange={(v) => setTheme({ ...theme, iconSize: v })}
+          accentCls={accentCls}
+        />
+      </div>
+
+      {/* Opacity */}
       <div className="bg-ios-card rounded-2xl p-4">
-        <p className="text-sm font-semibold text-ios-label mb-3">Tile Style</p>
-        <div className="flex gap-2">
-          {TILE_STYLE_OPTIONS.map((opt) => {
-            const isSelected = theme.tileStyle === opt.id
-            return (
-              <button
-                key={opt.id}
-                onClick={() => setTheme({ ...theme, tileStyle: opt.id })}
-                className={cn(
-                  'flex-1 py-3 rounded-xl flex flex-col items-center gap-0.5 text-sm font-medium transition-all border',
-                  isSelected
-                    ? cn('border-white/20 text-ios-label', accentCls.bgLight)
-                    : 'border-transparent text-ios-secondary bg-ios-card-2/60 hover:bg-ios-card-2'
-                )}
-              >
-                <span>{opt.label}</span>
-                <span className="text-[11px] text-ios-secondary font-normal">{opt.desc}</span>
-              </button>
-            )
-          })}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-ios-label">Tile Opacity</p>
+          <span className={cn('text-sm font-medium', accentCls.text)}>{theme.tileOpacity}%</span>
+        </div>
+        <Slider
+          min={10}
+          max={100}
+          step={5}
+          value={[theme.tileOpacity]}
+          onValueChange={([v]) => setTheme({ ...theme, tileOpacity: v })}
+        />
+        <div className="flex justify-between mt-1">
+          <span className="text-[11px] text-ios-secondary">Transparent</span>
+          <span className="text-[11px] text-ios-secondary">Opaque</span>
         </div>
       </div>
 

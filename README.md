@@ -1,6 +1,13 @@
-# Lars's HomeKit Dashboard — HA Add-on Repository
+> **⚠️ AI Hobby Project — Work in Progress**
+> This project is built with the help of AI (Claude) and is actively under development.
+> Features may be incomplete, contain bugs, or change significantly between versions.
+> Contributions and feedback are welcome!
 
-This is a Home Assistant custom add-on repository.
+---
+
+# HomeKit Dashboard — HA Add-on Repository
+
+A HomeKit-style Home Assistant dashboard add-on. Displays all your entities as interactive glass tiles organized by area, with real-time WebSocket updates.
 
 ## Installation
 
@@ -16,3 +23,17 @@ This is a Home Assistant custom add-on repository.
 | Add-on | Description |
 |--------|-------------|
 | [HomeKit Dashboard](homekit_dashboard/) | HomeKit-style dashboard for all your HA entities |
+
+## Status
+
+| Feature | Status |
+|---------|--------|
+| Glass tile UI | ✅ Done |
+| Area-based Home view | ✅ Done |
+| Customizable themes & accent colors | ✅ Done |
+| Custom entity icons | ✅ Done |
+| Adjustable tile size, shape, opacity | ✅ Done |
+| Real-time WebSocket state updates | ✅ Done |
+| Drag-and-drop layout editing | 🔄 Planned |
+| Favorites section | 🔄 Planned |
+| Light/dark mode toggle | 🔄 Planned |

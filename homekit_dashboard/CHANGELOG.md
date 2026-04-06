@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.9] - 2026-04-06
+
+- Sync CHANGELOG.md staged by commit-msg hook
+
 ## [1.0.8] - 2026-04-06
 
 - Add glassmorphism tiles, theme picker, and custom entity icons

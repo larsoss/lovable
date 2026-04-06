@@ -1,14 +1,29 @@
 export type AccentColor = 'blue' | 'teal' | 'purple' | 'green' | 'amber'
 export type TileStyle = 'glass' | 'solid'
 export type BgStyle = 'dark' | 'black' | 'navy' | 'slate'
+export type TileSize = 'compact' | 'normal' | 'large'
+export type TileShape = 'square' | 'rect'
+export type IconSize = 'small' | 'medium' | 'large'
 
 export interface ThemeConfig {
   accent: AccentColor
   tileStyle: TileStyle
   bgStyle: BgStyle
+  tileSize: TileSize
+  tileShape: TileShape
+  iconSize: IconSize
+  tileOpacity: number   // 10–100
 }
 
-export const DEFAULT_THEME: ThemeConfig = { accent: 'blue', tileStyle: 'glass', bgStyle: 'dark' }
+export const DEFAULT_THEME: ThemeConfig = {
+  accent: 'blue',
+  tileStyle: 'glass',
+  bgStyle: 'dark',
+  tileSize: 'normal',
+  tileShape: 'square',
+  iconSize: 'medium',
+  tileOpacity: 80,
+}
 
 const KEY = 'hk_theme'
 
@@ -54,4 +69,24 @@ export const BG_PREVIEW: Record<BgStyle, string> = {
   black: '#000000',
   navy:  '#0d1b2a',
   slate: '#1e293b',
+}
+
+/** Responsive grid column classes per tile size */
+export const GRID_COLS: Record<TileSize, string> = {
+  compact: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8',
+  normal:  'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5',
+  large:   'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4',
+}
+
+/** Tile aspect ratio class per shape */
+export const TILE_ASPECT: Record<TileShape, string> = {
+  square: 'aspect-square',
+  rect:   'aspect-[3/2]',
+}
+
+/** Icon container size class per iconSize */
+export const ICON_SIZE_CLASS: Record<IconSize, string> = {
+  small:  'w-5 h-5',
+  medium: 'w-8 h-8',
+  large:  'w-11 h-11',
 }

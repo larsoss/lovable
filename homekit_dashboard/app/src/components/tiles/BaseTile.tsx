@@ -1,6 +1,7 @@
 import React, { useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { useHA } from '@/hooks/useHAClient'
+import { TILE_ASPECT, ICON_SIZE_CLASS } from '@/lib/theme-storage'
 
 export type ActiveColor = 'amber' | 'blue' | 'green' | 'red' | 'purple' | 'teal' | 'none'
 
@@ -14,15 +15,15 @@ const ACTIVE_ICON: Record<ActiveColor, string> = {
   none:   'text-ios-secondary',
 }
 
-// Solid-mode active tint backgrounds
-const SOLID_ACTIVE_BG: Record<ActiveColor, string> = {
-  amber:  'bg-ios-amber/20',
-  blue:   'bg-ios-blue/20',
-  green:  'bg-ios-green/20',
-  red:    'bg-ios-red/20',
-  purple: 'bg-ios-purple/20',
-  teal:   'bg-ios-teal/20',
-  none:   '',
+// RGBA rgb values for glass tints
+const GLASS_TINT_RGB: Record<ActiveColor, string> = {
+  amber:  '255,159,10',
+  blue:   '10,132,255',
+  green:  '48,209,88',
+  red:    '255,69,58',
+  teal:   '90,200,250',
+  purple: '191,90,242',
+  none:   '255,255,255',
 }
 
 interface BaseTileProps {
@@ -50,6 +51,8 @@ export function BaseTile({
 }: BaseTileProps) {
   const { theme } = useHA()
   const isGlass = theme.tileStyle === 'glass'
+  const opacity = theme.tileOpacity / 100
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const didLongPress = useRef(false)
 
@@ -68,23 +71,32 @@ export function BaseTile({
   }, [])
 
   const handleClick = useCallback(() => {
-    if (!didLongPress.current) {
-      onClick?.()
-    }
+    if (!didLongPress.current) onClick?.()
     didLongPress.current = false
   }, [onClick])
 
-  const colorKey = isActive ? activeColor : 'none'
-
-  // Glass tile classes
-  const glassBase = isGlass
+  // Compute background via inline style so opacity is fully dynamic
+  const bgStyle: React.CSSProperties = isGlass
     ? isActive
-      ? cn('tile-glass-active', activeColor !== 'none' && `tile-glass-${activeColor}`)
-      : 'tile-glass'
-    : cn(
-        isActive ? 'bg-ios-card-2' : 'bg-ios-card',
-        isActive && SOLID_ACTIVE_BG[activeColor],
-      )
+      ? {
+          background: `rgba(${GLASS_TINT_RGB[activeColor]},${(activeColor === 'none' ? 0.12 : 0.18) * opacity})`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid rgba(255,255,255,${0.18 * opacity})`,
+        }
+      : {
+          background: `rgba(255,255,255,${0.06 * opacity})`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: `1px solid rgba(255,255,255,${0.10 * opacity})`,
+        }
+    : isActive
+      ? activeColor !== 'none'
+        ? { background: `rgba(${GLASS_TINT_RGB[activeColor]},${0.20 * opacity})` }
+        : { background: `rgba(58,58,60,${opacity})` }
+      : { background: `rgba(44,44,46,${opacity})` }
+
+  const colorKey = isActive ? activeColor : 'none'
 
   return (
     <div
@@ -96,23 +108,24 @@ export function BaseTile({
       onPointerCancel={cancelPress}
       onClick={handleClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.() }}
+      style={bgStyle}
       className={cn(
-        'relative aspect-square rounded-2xl p-4 flex flex-col justify-between',
+        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between',
         'cursor-pointer select-none transition-all duration-150',
         'active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue',
-        glassBase,
+        TILE_ASPECT[theme.tileShape],
         className
       )}
     >
       {/* Top row: icon + active indicator */}
       <div className="flex items-start justify-between">
-        <div className={cn('w-8 h-8', isActive ? ACTIVE_ICON[colorKey] : 'text-ios-secondary')}>
+        <div className={cn(ICON_SIZE_CLASS[theme.iconSize], isActive ? ACTIVE_ICON[colorKey] : 'text-ios-secondary')}>
           {icon}
         </div>
         {isActive && (
           <span
             className={cn(
-              'w-2 h-2 rounded-full mt-1',
+              'w-2 h-2 rounded-full mt-1 shrink-0',
               activeColor === 'amber'  && 'bg-ios-amber',
               activeColor === 'blue'   && 'bg-ios-blue',
               activeColor === 'green'  && 'bg-ios-green',
@@ -124,13 +137,13 @@ export function BaseTile({
         )}
       </div>
 
-      {/* Extra children (e.g. popover trigger overlays) */}
       {children}
 
-      {/* Bottom row: label */}
+      {/* Bottom: label */}
       <div>
         <p className={cn(
-          'text-sm font-semibold leading-tight truncate',
+          'font-semibold leading-tight truncate',
+          theme.iconSize === 'small' ? 'text-xs' : 'text-sm',
           isActive ? 'text-ios-label' : 'text-ios-secondary'
         )}>
           {label}

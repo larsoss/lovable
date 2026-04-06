@@ -15,13 +15,11 @@ interface RoomTabsProps {
 export function RoomTabs({ activeTab, onTabChange }: RoomTabsProps) {
   const { haAreas, customAreas, entities, resolveEntityArea } = useHA()
 
-  // Only show area tabs that actually have entities assigned
   const areaTabs = useMemo(() => {
     const allAreas = [
       ...haAreas.map((a) => ({ area_id: a.area_id, name: a.name })),
       ...customAreas,
     ]
-
     return allAreas.filter((area) =>
       Object.keys(entities).some((eid) => {
         if (!TILE_DOMAINS.has(getDomain(eid))) return false
@@ -33,7 +31,7 @@ export function RoomTabs({ activeTab, onTabChange }: RoomTabsProps) {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange}>
       <TabsList>
-        <TabsTrigger value="all">All</TabsTrigger>
+        <TabsTrigger value="home">Home</TabsTrigger>
         {areaTabs.map((area) => (
           <TabsTrigger key={area.area_id} value={area.area_id}>
             {area.name}
