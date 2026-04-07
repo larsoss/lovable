@@ -145,9 +145,11 @@ function snapSpan(current: TileSpan, dx: number, dy: number, tileW: number, tile
 interface EditOverlayProps {
   entityId: string
   tileRef: React.RefObject<HTMLDivElement>
+  currentSpan: TileSpan
+  onPreviewChange: (span: TileSpan | null) => void
 }
 
-function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
+function EditOverlay({ entityId, tileRef, currentSpan, onPreviewChange }: EditOverlayProps) {
   const { entityTileSizes, setEntityTileSize, toggleHideEntity, toggleFavorite, favorites } = useHA()
   const [showIconPicker, setShowIconPicker] = useState(false)
   const current = entityTileSizes[entityId] ?? '1x1'
@@ -155,7 +157,6 @@ function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
 
   // Resize handle state
   const dragStart = useRef<{ x: number; y: number; span: TileSpan; cellW: number; cellH: number } | null>(null)
-  const [previewSpan, setPreviewSpan] = useState<TileSpan | null>(null)
 
   const onResizePointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation()
@@ -179,8 +180,8 @@ function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
     const { x, y, span, cellW, cellH } = dragStart.current
     const dx = e.clientX - x
     const dy = e.clientY - y
-    setPreviewSpan(snapSpan(span, dx, dy, cellW, cellH))
-  }, [])
+    onPreviewChange(snapSpan(span, dx, dy, cellW, cellH))
+  }, [onPreviewChange])
 
   const onResizePointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragStart.current) return
@@ -190,10 +191,10 @@ function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
     const newSpan = snapSpan(span, dx, dy, cellW, cellH)
     setEntityTileSize(entityId, newSpan)
     dragStart.current = null
-    setPreviewSpan(null)
-  }, [entityId, setEntityTileSize])
+    onPreviewChange(null)
+  }, [entityId, setEntityTileSize, onPreviewChange])
 
-  const displaySpan = previewSpan ?? current
+  const isResizing = currentSpan !== current
 
   return (
     <>
@@ -203,8 +204,13 @@ function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
           <GripVertical className="w-4 h-4 text-white/60" />
         </div>
 
-        {/* Current size indicator */}
-        <span className="text-[10px] text-white/50 font-mono absolute top-2 right-2">{displaySpan}</span>
+        {/* Current size indicator — shows target size during resize */}
+        <span className={cn(
+          'text-[10px] font-mono absolute top-2 right-2 transition-colors',
+          isResizing ? 'text-ios-blue font-bold' : 'text-white/50'
+        )}>
+          {currentSpan}
+        </span>
 
         {/* Icon + Heart + Hide buttons */}
         <div className="flex gap-1.5 pointer-events-auto">
@@ -235,8 +241,8 @@ function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
           className={cn(
             'pointer-events-auto absolute bottom-1.5 right-1.5 cursor-nwse-resize',
             'w-6 h-6 rounded-lg flex items-center justify-center',
-            'bg-white/20 hover:bg-white/40 transition-colors',
-            previewSpan && previewSpan !== current && 'bg-ios-blue/60',
+            'transition-colors',
+            isResizing ? 'bg-ios-blue/80' : 'bg-white/20 hover:bg-white/40',
           )}
           onPointerDown={onResizePointerDown}
           onPointerMove={onResizePointerMove}
@@ -270,6 +276,10 @@ interface TileWrapperProps {
 
 function TileWrapper({ entity, span, isEditMode, isDragging, isDragOver, isFavorited, contextId, onDragStart, onDragOver, onDrop, onDragEnd }: TileWrapperProps) {
   const tileRef = useRef<HTMLDivElement>(null)
+  // previewSpan is lifted here so the grid cell itself resizes during drag
+  const [previewSpan, setPreviewSpan] = useState<TileSpan | null>(null)
+  const activeSpan = previewSpan ?? span
+
   return (
     <div
       ref={tileRef}
@@ -279,14 +289,25 @@ function TileWrapper({ entity, span, isEditMode, isDragging, isDragOver, isFavor
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={cn(
-        'relative transition-all duration-150',
-        SPAN_CLASSES[span],
+        'relative',
+        // Instant resize during drag preview, animated otherwise
+        previewSpan ? 'transition-none' : 'transition-all duration-150',
+        SPAN_CLASSES[activeSpan],
         isDragging && 'opacity-40 scale-95',
         isDragOver && 'ring-2 ring-ios-blue ring-offset-1 ring-offset-transparent rounded-2xl',
+        // Blue ring while resizing to show preview
+        previewSpan && previewSpan !== span && 'ring-2 ring-ios-blue/70 rounded-2xl',
       )}
     >
       <Tile entity={entity} />
-      {isEditMode && <EditOverlay entityId={entity.entity_id} tileRef={tileRef} />}
+      {isEditMode && (
+        <EditOverlay
+          entityId={entity.entity_id}
+          tileRef={tileRef}
+          currentSpan={activeSpan}
+          onPreviewChange={setPreviewSpan}
+        />
+      )}
       {!isEditMode && isFavorited && (
         <Heart className="w-3 h-3 fill-red-400 text-red-400 absolute top-1.5 right-1.5 z-5 pointer-events-none" />
       )}
