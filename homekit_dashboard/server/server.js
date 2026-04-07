@@ -218,7 +218,7 @@ wss.on('connection', (browserWs) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`HomeKit Dashboard server listening on port ${PORT}`);
+  console.log(`The-One Dashboard server listening on port ${PORT}`);
   if (!SUPERVISOR_TOKEN) {
     console.warn('WARNING: SUPERVISOR_TOKEN is not set — HA connection will fail');
   }

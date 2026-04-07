@@ -29,7 +29,7 @@
 
 ## [1.0.0] - 2026-04-04
 
-- feat: initial release — HomeKit-style HA dashboard as add-on
+- feat: initial release — The-One Dashboard as Home Assistant add-on
 - feat: light, switch, thermostat, lock, cover, sensor, person tiles
 - feat: area-based room tabs, favorites, drag-reorder areas
 - feat: glassmorphism tile style with iOS color tokens
