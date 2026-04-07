@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.47] - 2026-04-07
+
+- fix: complete cross-device settings sync + HA back button
+
 ## [1.0.46] - 2026-04-07
 
 - feat: live tile resize preview while dragging
