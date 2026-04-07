@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { useHA } from '@/hooks/useHAClient'
-import { TILE_ASPECT, ICON_SIZE_CLASS } from '@/lib/theme-storage'
+import { ICON_SIZE_CLASS } from '@/lib/theme-storage'
 
 export type ActiveColor = 'amber' | 'blue' | 'green' | 'red' | 'purple' | 'teal' | 'none'
 
@@ -114,10 +114,9 @@ export function BaseTile({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.() }}
       style={bgStyle}
       className={cn(
-        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between',
+        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between h-full',
         'cursor-pointer select-none transition-all duration-150',
         'active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue',
-        TILE_ASPECT[theme.tileShape],
         className
       )}
     >

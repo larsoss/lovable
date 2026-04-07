@@ -17,8 +17,8 @@ import { CameraTile } from '@/components/tiles/CameraTile'
 import { CalendarTile } from '@/components/tiles/CalendarTile'
 import { BaseTile } from '@/components/tiles/BaseTile'
 import { useHA } from '@/hooks/useHAClient'
-import { GRID_COLS } from '@/lib/theme-storage'
-import { SPAN_CLASSES, type TileSpan } from '@/lib/tile-sizes'
+import { GRID_COLS, TILE_ROW_H } from '@/lib/theme-storage'
+import { SPAN_CLASSES, spanToUnits, unitsToSpan, type TileSpan } from '@/lib/tile-sizes'
 import { ICON_OPTIONS } from '@/lib/icons'
 import { Activity, EyeOff, X, Heart, GripVertical, GripHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -120,12 +120,26 @@ function IconPicker({ entityId, onClose }: IconPickerProps) {
   )
 }
 
-// Snap span based on drag delta relative to one tile cell size
-function snapSpan(current: TileSpan, dx: number, dy: number, cellW: number, cellH: number): TileSpan {
-  const [c, r] = current.split('x').map(Number)
-  const newC = dx > cellW * 0.45 ? 2 : dx < -cellW * 0.45 ? 1 : c
-  const newR = dy > cellH * 0.45 ? 2 : dy < -cellH * 0.45 ? 1 : r
-  return `${newC}x${newR}` as TileSpan
+/**
+ * Compute a new TileSpan based on drag delta.
+ * tileW/tileH = full rendered size of the tile before drag started.
+ * Drag right > 40% of tile width  → step wider
+ * Drag left  > 25% of tile width  → step narrower
+ * Drag down  > 40% of tile height → step taller
+ * Drag up    > 25% of tile height → step shorter
+ */
+function snapSpan(current: TileSpan, dx: number, dy: number, tileW: number, tileH: number): TileSpan {
+  const [cu, ru] = spanToUnits(current)
+  let newCu = cu
+  let newRu = ru
+
+  if      (dx >  tileW * 0.40) newCu = cu < 4 ? (cu <= 1 ? 2 : 4) : 4
+  else if (dx < -tileW * 0.25) newCu = cu > 1 ? (cu >= 4 ? 2 : 1) : 1
+
+  if      (dy >  tileH * 0.40) newRu = 2
+  else if (dy < -tileH * 0.25) newRu = 1
+
+  return unitsToSpan(newCu, newRu)
 }
 
 interface EditOverlayProps {
@@ -149,14 +163,13 @@ function EditOverlay({ entityId, tileRef }: EditOverlayProps) {
     const el = tileRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
-    // Cell size = current rendered tile size ÷ current span columns/rows
-    const [c, r] = current.split('x').map(Number)
+    // Pass full rendered tile dimensions; snapSpan uses these for threshold calc
     dragStart.current = {
       x: e.clientX,
       y: e.clientY,
       span: current,
-      cellW: rect.width / c,
-      cellH: rect.height / r,
+      cellW: rect.width,
+      cellH: rect.height,
     }
     ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
   }, [current, tileRef])
@@ -335,7 +348,10 @@ export function TilesGrid({ entities, contextId, className }: TilesGridProps) {
   if (ordered.length === 0) return null
 
   return (
-    <div className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize], className)}>
+    <div
+      className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize], className)}
+      style={{ gridAutoRows: `${TILE_ROW_H[theme.tileSize]}px` }}
+    >
       {ordered.map((entity) => {
         const defaultSpan = getDomain(entity.entity_id) === 'person' ? '2x1' : '1x1'
         const span = entityTileSizes[entity.entity_id] ?? defaultSpan

@@ -1,12 +1,12 @@
-export type AccentColor = 'blue' | 'teal' | 'purple' | 'green' | 'amber'
 export type TileStyle = 'glass' | 'solid'
 export type BgStyle = 'dark' | 'black' | 'navy' | 'slate'
 export type TileSize = 'compact' | 'normal' | 'large'
 export type TileShape = 'square' | 'rect'
 export type IconSize = 'small' | 'medium' | 'large'
 
+/** Accent is stored as a hue value 0–360 */
 export interface ThemeConfig {
-  accent: AccentColor
+  accent: number
   tileStyle: TileStyle
   bgStyle: BgStyle
   tileSize: TileSize
@@ -16,7 +16,7 @@ export interface ThemeConfig {
 }
 
 export const DEFAULT_THEME: ThemeConfig = {
-  accent: 'blue',
+  accent: 211,          // iOS blue hue
   tileStyle: 'glass',
   bgStyle: 'dark',
   tileSize: 'normal',
@@ -25,13 +25,39 @@ export const DEFAULT_THEME: ThemeConfig = {
   tileOpacity: 80,
 }
 
+/** Named hue values for backward compat with old stored strings */
+const LEGACY_HUE: Record<string, number> = {
+  blue: 211, teal: 200, purple: 280, green: 142, amber: 37,
+}
+
+/** Convert any stored accent value (old string or new number) to a hue */
+export function resolveAccentHue(raw: unknown): number {
+  if (typeof raw === 'number') return raw
+  if (typeof raw === 'string' && raw in LEGACY_HUE) return LEGACY_HUE[raw]
+  return DEFAULT_THEME.accent
+}
+
+/** CSS color string for the accent hue */
+export function accentHex(hue: number): string {
+  return `hsl(${hue}, 80%, 60%)`
+}
+
+/** HSLA with alpha */
+export function accentHsla(hue: number, alpha: number): string {
+  return `hsla(${hue}, 80%, 60%, ${alpha})`
+}
+
 import { userKey } from './user-context'
 
 function key() { return userKey('hk_theme') }
 
 export function getTheme(): ThemeConfig {
   try {
-    return { ...DEFAULT_THEME, ...(JSON.parse(localStorage.getItem(key()) ?? '{}') as Partial<ThemeConfig>) }
+    const raw = JSON.parse(localStorage.getItem(key()) ?? '{}') as Record<string, unknown>
+    const merged = { ...DEFAULT_THEME, ...raw } as ThemeConfig
+    // Migrate legacy string accent → hue number
+    merged.accent = resolveAccentHue(raw.accent ?? merged.accent)
+    return merged
   } catch {
     return DEFAULT_THEME
   }
@@ -49,22 +75,6 @@ export const BG_VALUES: Record<BgStyle, string> = {
   slate: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
 }
 
-/** Tailwind class sets per accent color — all strings must be statically present */
-export const ACCENT_CLASSES = {
-  blue:   { bg: 'bg-ios-blue',   bgLight: 'bg-ios-blue/20',   text: 'text-ios-blue',   border: 'border-ios-blue' },
-  teal:   { bg: 'bg-ios-teal',   bgLight: 'bg-ios-teal/20',   text: 'text-ios-teal',   border: 'border-ios-teal' },
-  purple: { bg: 'bg-ios-purple', bgLight: 'bg-ios-purple/20', text: 'text-ios-purple', border: 'border-ios-purple' },
-  green:  { bg: 'bg-ios-green',  bgLight: 'bg-ios-green/20',  text: 'text-ios-green',  border: 'border-ios-green' },
-  amber:  { bg: 'bg-ios-amber',  bgLight: 'bg-ios-amber/20',  text: 'text-ios-amber',  border: 'border-ios-amber' },
-} as const
-
-export const ACCENT_HEX: Record<AccentColor, string> = {
-  blue:   '#0A84FF',
-  teal:   '#5AC8FA',
-  purple: '#BF5AF2',
-  green:  '#30D158',
-  amber:  '#FF9F0A',
-}
 
 export const BG_PREVIEW: Record<BgStyle, string> = {
   dark:  '#1C1C1E',
@@ -73,11 +83,20 @@ export const BG_PREVIEW: Record<BgStyle, string> = {
   slate: '#1e293b',
 }
 
-/** Responsive grid column classes per tile size */
+/** Responsive grid column classes per tile size.
+ *  Column count is doubled vs the visual tile count so that the 'half' span
+ *  (col-span-1) renders as exactly half the width of a normal tile (col-span-2). */
 export const GRID_COLS: Record<TileSize, string> = {
-  compact: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8',
-  normal:  'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5',
-  large:   'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4',
+  compact: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-12',
+  normal:  'grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-10',
+  large:   'grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-8',
+}
+
+/** Fixed row height in px per tile size (rows don't grow with content) */
+export const TILE_ROW_H: Record<TileSize, number> = {
+  compact: 80,
+  normal:  112,
+  large:   152,
 }
 
 /** Tile aspect ratio class per shape */

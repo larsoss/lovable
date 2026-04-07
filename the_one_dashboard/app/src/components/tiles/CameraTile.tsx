@@ -4,9 +4,6 @@ import { useEntity } from '@/hooks/useEntities'
 import { entityLabel } from '@/lib/utils'
 import type { CameraAttributes } from '@/types/ha-types'
 import { cn } from '@/lib/utils'
-import { useHA } from '@/hooks/useHAClient'
-import { TILE_ASPECT } from '@/lib/theme-storage'
-
 const REFRESH_INTERVAL_MS = 10_000
 
 interface CameraTileProps {
@@ -15,7 +12,6 @@ interface CameraTileProps {
 
 export function CameraTile({ entityId }: CameraTileProps) {
   const entity = useEntity(entityId)
-  const { theme } = useHA()
   const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -44,10 +40,9 @@ export function CameraTile({ entityId }: CameraTileProps) {
         tabIndex={0}
         onClick={() => setFullscreen(true)}
         className={cn(
-          'relative rounded-2xl overflow-hidden cursor-pointer select-none',
+          'relative rounded-2xl overflow-hidden cursor-pointer select-none h-full',
           'transition-all duration-150 active:scale-95',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue',
-          TILE_ASPECT[theme.tileShape],
         )}
       >
         {snapshotUrl ? (

@@ -11,10 +11,9 @@ import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { ICON_OPTIONS, getIconByName } from '@/lib/icons'
 import {
-  ACCENT_CLASSES,
-  ACCENT_HEX,
   BG_PREVIEW,
-  type AccentColor,
+  accentHex,
+  accentHsla,
   type TileStyle,
   type BgStyle,
   type TileSize,
@@ -285,13 +284,6 @@ function IconPickerDialog({
 
 // ── Appearance Section ──────────────────────────────────────────────────────
 
-const ACCENT_OPTIONS: Array<{ id: AccentColor; label: string }> = [
-  { id: 'blue',   label: 'Blue'   },
-  { id: 'teal',   label: 'Teal'   },
-  { id: 'purple', label: 'Purple' },
-  { id: 'green',  label: 'Green'  },
-  { id: 'amber',  label: 'Amber'  },
-]
 
 const TILE_STYLE_OPTIONS: Array<{ id: TileStyle; label: string; desc: string }> = [
   { id: 'glass', label: 'Glass', desc: 'Frosted glass' },
@@ -327,13 +319,13 @@ function OptionRow<T extends string>({
   options,
   value,
   onChange,
-  accentCls,
+  accentHue,
 }: {
   label: string
   options: Array<{ id: T; label: string; desc?: string }>
   value: T
   onChange: (v: T) => void
-  accentCls: { bgLight: string; text: string }
+  accentHue: number
 }) {
   return (
     <div>
@@ -348,9 +340,10 @@ function OptionRow<T extends string>({
               className={cn(
                 'flex-1 py-2.5 rounded-xl flex flex-col items-center gap-0.5 text-sm font-medium transition-all border',
                 isSelected
-                  ? cn('border-white/20 text-ios-label', accentCls.bgLight)
+                  ? 'border-white/20 text-ios-label'
                   : 'border-transparent text-ios-secondary bg-ios-card-2/50 hover:bg-ios-card-2'
               )}
+              style={isSelected ? { background: accentHsla(accentHue, 0.2) } : undefined}
             >
               <span>{opt.label}</span>
               {opt.desc && <span className="text-[10px] text-ios-secondary font-normal">{opt.desc}</span>}
@@ -364,31 +357,40 @@ function OptionRow<T extends string>({
 
 function AppearanceSection() {
   const { theme, setTheme } = useHA()
-  const accentCls = ACCENT_CLASSES[theme.accent]
+  const hue = theme.accent
 
   return (
     <div className="px-4 pb-8 space-y-4">
-      {/* Accent color */}
+      {/* Accent color — hue bar */}
       <div className="bg-ios-card rounded-2xl p-4">
-        <p className="text-sm font-semibold text-ios-label mb-4">Accent Color</p>
-        <div className="flex gap-3 flex-wrap">
-          {ACCENT_OPTIONS.map((opt) => {
-            const isSelected = theme.accent === opt.id
-            return (
-              <button
-                key={opt.id}
-                onClick={() => setTheme({ ...theme, accent: opt.id })}
-                title={opt.label}
-                className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center transition-all',
-                  isSelected ? 'ring-2 ring-offset-2 ring-offset-ios-card ring-white/60 scale-110' : 'opacity-80 hover:opacity-100'
-                )}
-                style={{ background: ACCENT_HEX[opt.id] }}
-              >
-                {isSelected && <Check className="w-5 h-5 text-white" strokeWidth={2.5} />}
-              </button>
-            )
-          })}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-ios-label">Accent Color</p>
+          <div
+            className="w-6 h-6 rounded-full border-2 border-white/20 shrink-0"
+            style={{ background: accentHex(hue) }}
+          />
+        </div>
+        {/* Rainbow hue bar */}
+        <div className="relative h-4 rounded-full overflow-hidden" style={{
+          background: 'linear-gradient(to right, hsl(0,80%,60%), hsl(30,80%,60%), hsl(60,80%,60%), hsl(90,80%,60%), hsl(120,80%,60%), hsl(150,80%,60%), hsl(180,80%,60%), hsl(210,80%,60%), hsl(240,80%,60%), hsl(270,80%,60%), hsl(300,80%,60%), hsl(330,80%,60%), hsl(360,80%,60%))'
+        }}>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={hue}
+            onChange={(e) => setTheme({ ...theme, accent: Number(e.target.value) })}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          {/* Thumb indicator */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full border-2 border-white shadow-md pointer-events-none transition-all"
+            style={{
+              left: `calc(${(hue / 360) * 100}% - 10px)`,
+              background: accentHex(hue),
+            }}
+          />
         </div>
       </div>
 
@@ -399,28 +401,28 @@ function AppearanceSection() {
           options={TILE_STYLE_OPTIONS}
           value={theme.tileStyle}
           onChange={(v) => setTheme({ ...theme, tileStyle: v })}
-          accentCls={accentCls}
+          accentHue={hue}
         />
         <OptionRow
           label="Tile Shape"
           options={TILE_SHAPE_OPTIONS}
           value={theme.tileShape}
           onChange={(v) => setTheme({ ...theme, tileShape: v })}
-          accentCls={accentCls}
+          accentHue={hue}
         />
         <OptionRow
           label="Tile Size"
           options={TILE_SIZE_OPTIONS}
           value={theme.tileSize}
           onChange={(v) => setTheme({ ...theme, tileSize: v })}
-          accentCls={accentCls}
+          accentHue={hue}
         />
         <OptionRow
           label="Icon Size"
           options={ICON_SIZE_OPTIONS}
           value={theme.iconSize}
           onChange={(v) => setTheme({ ...theme, iconSize: v })}
-          accentCls={accentCls}
+          accentHue={hue}
         />
       </div>
 
@@ -428,7 +430,7 @@ function AppearanceSection() {
       <div className="bg-ios-card rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-ios-label">Tile Opacity</p>
-          <span className={cn('text-sm font-medium', accentCls.text)}>{theme.tileOpacity}%</span>
+          <span className="text-sm font-medium" style={{ color: accentHex(hue) }}>{theme.tileOpacity}%</span>
         </div>
         <Slider
           min={10}
@@ -495,7 +497,7 @@ export function SettingsPanel({ onClose }: Props) {
   const [showNewArea, setShowNewArea] = useState(false)
   const [iconPickerEntityId, setIconPickerEntityId] = useState<string | null>(null)
 
-  const accentCls = ACCENT_CLASSES[theme.accent]
+  const hue = theme.accent
 
   const effectiveEntityArea = useMemo<Record<string, string | null>>(() => {
     const map: Record<string, string | null> = {}
@@ -570,7 +572,8 @@ export function SettingsPanel({ onClose }: Props) {
         <div className="flex items-center gap-3 px-4 pt-5 pb-3">
           <button
             onClick={onClose}
-            className={cn('p-2 -ml-2 rounded-xl active:scale-95 transition-transform', accentCls.text)}
+            className="p-2 -ml-2 rounded-xl active:scale-95 transition-transform"
+            style={{ color: accentHex(hue) }}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -578,10 +581,8 @@ export function SettingsPanel({ onClose }: Props) {
           {section === 'areas' && (
             <button
               onClick={() => setShowNewArea(true)}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium active:scale-95 transition-transform',
-                accentCls.bgLight, accentCls.text
-              )}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium active:scale-95 transition-transform"
+              style={{ background: accentHsla(hue, 0.2), color: accentHex(hue) }}
             >
               <Plus className="w-4 h-4" />
               New Area
@@ -598,9 +599,10 @@ export function SettingsPanel({ onClose }: Props) {
               className={cn(
                 'flex-1 py-2 rounded-xl text-sm font-medium transition-all capitalize',
                 section === s
-                  ? cn('text-ios-label', accentCls.bgLight)
+                  ? 'text-ios-label'
                   : 'text-ios-secondary bg-ios-card-2/50 hover:bg-ios-card-2'
               )}
+              style={section === s ? { background: accentHsla(hue, 0.2) } : undefined}
             >
               {s}
             </button>
@@ -632,10 +634,8 @@ export function SettingsPanel({ onClose }: Props) {
                     </div>
                     <button
                       onClick={() => setEditingArea({ id: area.area_id, name: area.name })}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ios-card-2 text-xs font-medium active:scale-95 transition-transform',
-                        accentCls.text
-                      )}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ios-card-2 text-xs font-medium active:scale-95 transition-transform"
+                      style={{ color: accentHex(hue) }}
                     >
                       <Pencil className="w-3 h-3" />
                       Edit
@@ -675,10 +675,9 @@ export function SettingsPanel({ onClose }: Props) {
                               title="Change icon"
                               className={cn(
                                 'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                                customIconName
-                                  ? cn(accentCls.bgLight, accentCls.text)
-                                  : 'bg-ios-card-2 text-ios-secondary hover:text-ios-label'
+                                !customIconName && 'bg-ios-card-2 text-ios-secondary hover:text-ios-label'
                               )}
+                              style={customIconName ? { background: accentHsla(hue, 0.2), color: accentHex(hue) } : undefined}
                             >
                               <IconComp className="w-4 h-4" />
                             </button>
@@ -746,7 +745,8 @@ export function SettingsPanel({ onClose }: Props) {
                     <button
                       onClick={() => toggleHideEntity(eid)}
                       title="Unhide"
-                      className={cn('flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors', accentCls.bgLight, accentCls.text)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+                      style={{ background: accentHsla(hue, 0.2), color: accentHex(hue) }}
                     >
                       <Eye className="w-3 h-3" />
                       Show
@@ -782,10 +782,9 @@ export function SettingsPanel({ onClose }: Props) {
                       title="Change icon"
                       className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                        customIconName
-                          ? cn(accentCls.bgLight, accentCls.text)
-                          : 'bg-ios-card-2 text-ios-secondary hover:text-ios-label'
+                        !customIconName && 'bg-ios-card-2 text-ios-secondary hover:text-ios-label'
                       )}
+                      style={customIconName ? { background: accentHsla(hue, 0.2), color: accentHex(hue) } : undefined}
                     >
                       <IconComp className="w-4 h-4" />
                     </button>

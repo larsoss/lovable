@@ -4,8 +4,6 @@ import { useHA } from '@/hooks/useHAClient'
 import { entityLabel } from '@/lib/utils'
 import type { MediaPlayerAttributes } from '@/types/ha-types'
 import { cn } from '@/lib/utils'
-import { useHA as useHATheme } from '@/hooks/useHAClient'
-import { TILE_ASPECT } from '@/lib/theme-storage'
 
 interface MediaPlayerTileProps {
   entityId: string
@@ -14,7 +12,6 @@ interface MediaPlayerTileProps {
 export function MediaPlayerTile({ entityId }: MediaPlayerTileProps) {
   const entity = useEntity(entityId)
   const { callService } = useHA()
-  const { theme } = useHATheme()
 
   if (!entity) return null
 
@@ -39,10 +36,9 @@ export function MediaPlayerTile({ entityId }: MediaPlayerTileProps) {
       tabIndex={0}
       style={artUrl ? {} : undefined}
       className={cn(
-        'relative rounded-2xl overflow-hidden flex flex-col justify-between p-3 sm:p-4',
+        'relative rounded-2xl overflow-hidden flex flex-col justify-between p-3 sm:p-4 h-full',
         'cursor-pointer select-none transition-all duration-150 active:scale-95',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue',
-        TILE_ASPECT[theme.tileShape],
       )}
     >
       {/* Album art background */}
