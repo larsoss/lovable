@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.49] - 2026-04-11
+
+- perf: pre-build frontend to drastically speed up HA add-on updates
+
 ## [1.0.48] - 2026-04-11
 
 - feat: dashboard UX improvements based on user research
