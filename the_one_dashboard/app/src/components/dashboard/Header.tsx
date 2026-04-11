@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Settings, Pencil, Check, Lightbulb, ToggleRight, Thermometer, Lock, PanelLeft, House } from 'lucide-react'
+import { Settings, Pencil, Check, Lightbulb, ToggleRight, Thermometer, Lock, PanelLeft, House, ChevronLeft } from 'lucide-react'
 import { useHA } from '@/hooks/useHAClient'
 import { getDomain } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -53,9 +53,11 @@ interface StatusChip {
 interface HeaderProps {
   onSettingsClick: () => void
   onSidebarToggle?: () => void
+  onHomeClick?: () => void
+  currentRoom?: string
 }
 
-export function Header({ onSettingsClick, onSidebarToggle }: HeaderProps) {
+export function Header({ onSettingsClick, onSidebarToggle, onHomeClick, currentRoom }: HeaderProps) {
   const { status, locationName, entities, isEditMode, toggleEditMode } = useHA()
   const time = useTime()
 
@@ -99,18 +101,38 @@ export function Header({ onSettingsClick, onSidebarToggle }: HeaderProps) {
     <header className="px-4 pt-4 pb-2">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-ios-label truncate">{locationName}</h1>
-          <p className="text-sm text-ios-secondary mt-0.5">{formatDate(new Date())}</p>
+          {currentRoom ? (
+            /* Room view: show back button + room name */
+            <button
+              onClick={onHomeClick}
+              className="flex items-center gap-1 -ml-1 active:scale-95 transition-transform"
+            >
+              <ChevronLeft className="w-5 h-5 text-ios-secondary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-ios-secondary leading-none mb-0.5">{locationName}</p>
+                <h1 className="text-xl font-bold text-ios-label truncate leading-tight">{currentRoom}</h1>
+              </div>
+            </button>
+          ) : (
+            /* Home view: show location name */
+            <>
+              <h1 className="text-2xl font-bold text-ios-label truncate">{locationName}</h1>
+              <p className="text-sm text-ios-secondary mt-0.5">{formatDate(new Date())}</p>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-2 pt-1 shrink-0">
-          {/* Back to HA main menu — navigates parent frame to HA home */}
+          {/* Home button — navigates to The-One Dashboard home view */}
           <button
-            onClick={() => {
-              try { window.parent.location.href = '/' } catch { window.location.href = '/' }
-            }}
-            className="p-2 rounded-full bg-ios-card text-ios-secondary hover:text-ios-label active:scale-95 transition-all"
-            aria-label="Terug naar Home Assistant"
-            title="Terug naar Home Assistant"
+            onClick={onHomeClick}
+            className={cn(
+              'p-2 rounded-full active:scale-95 transition-all',
+              currentRoom
+                ? 'bg-ios-blue/20 text-ios-blue'
+                : 'bg-ios-card text-ios-secondary hover:text-ios-label'
+            )}
+            aria-label="Home"
+            title="Home"
           >
             <House className="w-4 h-4" />
           </button>

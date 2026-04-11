@@ -57,3 +57,18 @@ export function unitsToSpan(c: number, r: number): TileSpan {
   if (cc <= 2) return rr <= 1 ? '1x1' : '1x2'
   return rr <= 1 ? '2x1' : '2x2'
 }
+
+/**
+ * Compute a new TileSpan based on drag delta.
+ * tileW/tileH = full rendered size of the tile before drag started.
+ */
+export function snapSpan(current: TileSpan, dx: number, dy: number, tileW: number, tileH: number): TileSpan {
+  const [cu, ru] = spanToUnits(current)
+  let newCu = cu
+  let newRu = ru
+  if      (dx >  tileW * 0.40) newCu = cu < 4 ? (cu <= 1 ? 2 : 4) : 4
+  else if (dx < -tileW * 0.25) newCu = cu > 1 ? (cu >= 4 ? 2 : 1) : 1
+  if      (dy >  tileH * 0.40) newRu = 2
+  else if (dy < -tileH * 0.25) newRu = 1
+  return unitsToSpan(newCu, newRu)
+}

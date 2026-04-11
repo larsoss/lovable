@@ -1,28 +1,20 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { Header } from './Header'
-import { RoomTabs } from './RoomTabs'
 import { TilesGrid } from './TilesGrid'
 import { Sidebar } from './Sidebar'
 import { SettingsPanel } from '@/components/settings/SettingsPanel'
 import { UserPicker } from './UserPicker'
 import { useHA } from '@/hooks/useHAClient'
 import { getDomain, entityLabel, cn } from '@/lib/utils'
-import { GRID_COLS } from '@/lib/theme-storage'
-import { SPAN_CLASSES, type TileSpan } from '@/lib/tile-sizes'
+import { GRID_COLS, TILE_ROW_H } from '@/lib/theme-storage'
+import { SPAN_CLASSES, snapSpan, type TileSpan } from '@/lib/tile-sizes'
 import {
-  Wifi, Activity, GripVertical, Star,
+  Wifi, Activity, GripVertical, GripHorizontal, Star,
   Home, Sofa, BedDouble, ChefHat, Bath, Car, Flower2, Tv, Dumbbell,
   Lightbulb, Thermometer, Check, Plus, RotateCcw, Search, X,
 } from 'lucide-react'
 import type { HassEntity } from '@/types/ha-types'
 import type { LucideIcon } from 'lucide-react'
-
-const SPAN_OPTIONS: { span: TileSpan; label: string }[] = [
-  { span: '1x1', label: '1×1' },
-  { span: '2x1', label: '2×1' },
-  { span: '1x2', label: '1×2' },
-  { span: '2x2', label: '2×2' },
-]
 
 const TILE_DOMAINS = new Set([
   'light', 'switch', 'input_boolean', 'climate', 'lock', 'cover', 'sensor', 'binary_sensor', 'person',
@@ -279,6 +271,33 @@ function AreaCard({
   const isGlass = theme.tileStyle === 'glass'
   const opacity = theme.tileOpacity / 100
   const span = entityTileSizes[areaId] ?? '1x1'
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [previewSpan, setPreviewSpan] = useState<TileSpan | null>(null)
+  const activeSpan = previewSpan ?? span
+  const resizeStart = useRef<{ x: number; y: number; span: TileSpan; w: number; h: number } | null>(null)
+
+  const onResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    if (!cardRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    resizeStart.current = { x: e.clientX, y: e.clientY, span, w: rect.width, h: rect.height }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }, [span])
+
+  const onResizePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!resizeStart.current) return
+    const { x, y, span: s, w, h } = resizeStart.current
+    setPreviewSpan(snapSpan(s, e.clientX - x, e.clientY - y, w, h))
+  }, [])
+
+  const onResizePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!resizeStart.current) return
+    const { x, y, span: s, w, h } = resizeStart.current
+    setEntityTileSize(areaId, snapSpan(s, e.clientX - x, e.clientY - y, w, h))
+    resizeStart.current = null
+    setPreviewSpan(null)
+  }, [areaId, setEntityTileSize])
 
   const lightsOn = entities.filter(
     (e) => getDomain(e.entity_id) === 'light' && e.state === 'on'
@@ -288,7 +307,6 @@ function AreaCard({
   ).length
   const activeCount = lightsOn + switchesOn
 
-  // Temperature: first climate or temp sensor
   const tempEntity = entities.find((e) => {
     const d = getDomain(e.entity_id)
     if (d === 'climate') return true
@@ -309,48 +327,40 @@ function AreaCard({
 
   const hasActivity = activeCount > 0
   const AreaIcon = getAreaIcon(areaName)
+  const isResizing = previewSpan !== null && previewSpan !== span
 
   const bgStyle: React.CSSProperties = isGlass
     ? hasActivity
-      ? {
-          background: `rgba(255,159,10,${0.18 * opacity})`,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: `1px solid rgba(255,255,255,${0.18 * opacity})`,
-        }
-      : {
-          background: `rgba(255,255,255,${0.06 * opacity})`,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: `1px solid rgba(255,255,255,${0.10 * opacity})`,
-        }
+      ? { background: `rgba(255,159,10,${0.18 * opacity})`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid rgba(255,255,255,${0.18 * opacity})` }
+      : { background: `rgba(255,255,255,${0.06 * opacity})`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid rgba(255,255,255,${0.10 * opacity})` }
     : hasActivity
       ? { background: `rgba(255,159,10,${0.18 * opacity})` }
       : { background: `rgba(44,44,46,${opacity})` }
 
   return (
     <div
-      draggable={isEditMode}
+      ref={cardRef}
+      draggable={isEditMode && !resizeStart.current}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       onClick={() => { if (!isEditMode) onClick() }}
       className={cn(
-        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between aspect-square',
-        'cursor-pointer select-none transition-all duration-150',
+        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between',
+        previewSpan ? 'transition-none' : 'transition-all duration-150',
+        'cursor-pointer select-none',
         !isEditMode && 'active:scale-95',
         isDragOver && 'ring-2 ring-ios-blue ring-offset-1 ring-offset-transparent opacity-60',
-        SPAN_CLASSES[span],
+        isResizing && 'ring-2 ring-ios-blue/70',
+        isEditMode && !previewSpan && 'tile-edit-mode',
+        SPAN_CLASSES[activeSpan],
       )}
       style={bgStyle}
     >
-      {/* Top row: icon + drag handle */}
+      {/* Top row: icon + drag-reorder handle */}
       <div className="flex items-start justify-between">
-        <AreaIcon className={cn(
-          'w-6 h-6',
-          hasActivity ? 'text-ios-amber' : 'text-ios-secondary'
-        )} />
+        <AreaIcon className={cn('w-6 h-6', hasActivity ? 'text-ios-amber' : 'text-ios-secondary')} />
         {isEditMode && (
           <GripVertical className="w-4 h-4 text-white/50 cursor-grab active:cursor-grabbing" />
         )}
@@ -372,10 +382,7 @@ function AreaCard({
 
       {/* Bottom: name + count */}
       <div>
-        <p className={cn(
-          'text-sm font-semibold leading-tight truncate',
-          hasActivity ? 'text-ios-label' : 'text-ios-secondary'
-        )}>
+        <p className={cn('text-sm font-semibold leading-tight truncate', hasActivity ? 'text-ios-label' : 'text-ios-secondary')}>
           {areaName}
         </p>
         <p className="text-xs text-ios-secondary mt-0.5">
@@ -384,24 +391,28 @@ function AreaCard({
         </p>
       </div>
 
-      {/* Edit mode overlay */}
+      {/* Edit mode: size label + resize handle */}
       {isEditMode && (
-        <div className="absolute inset-0 z-10 rounded-2xl flex flex-col items-center justify-center gap-1.5 bg-black/50 backdrop-blur-[2px]">
-          <div className="flex flex-wrap gap-1 justify-center px-2">
-            {SPAN_OPTIONS.map(({ span: s, label }) => (
-              <button
-                key={s}
-                onClick={(e) => { e.stopPropagation(); setEntityTileSize(areaId, s) }}
-                className={cn(
-                  'px-2 py-1 rounded-lg text-xs font-medium transition-all',
-                  span === s ? 'bg-ios-blue text-white' : 'bg-white/20 text-white hover:bg-white/30'
-                )}
-              >
-                {label}
-              </button>
-            ))}
+        <>
+          <span className={cn(
+            'absolute top-2 right-2 text-[10px] font-mono transition-colors',
+            isResizing ? 'text-ios-blue font-bold' : 'text-white/40'
+          )}>
+            {activeSpan}
+          </span>
+          <div
+            className={cn(
+              'absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg flex items-center justify-center cursor-nwse-resize transition-colors',
+              isResizing ? 'bg-ios-blue/80' : 'bg-white/20 hover:bg-white/40',
+            )}
+            onPointerDown={onResizePointerDown}
+            onPointerMove={onResizePointerMove}
+            onPointerUp={onResizePointerUp}
+            title="Sleep om te resizen"
+          >
+            <GripHorizontal className="w-3.5 h-3.5 text-white rotate-45" />
           </div>
-        </div>
+        </>
       )}
     </div>
   )
@@ -518,7 +529,10 @@ function HomeView({ onShowSettings, onTabChange }: HomeViewProps) {
             <Home className="w-4 h-4 text-ios-secondary" />
             <h2 className="text-base font-bold text-ios-label">Rooms</h2>
           </div>
-          <div className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize])}>
+          <div
+            className={cn('grid gap-2 sm:gap-3 px-4', GRID_COLS[theme.tileSize])}
+            style={{ gridAutoRows: `${TILE_ROW_H[theme.tileSize] * 2}px` }}
+          >
             {areasWithEntities.map((area) => (
               <AreaCard
                 key={area.area_id}
@@ -563,7 +577,7 @@ export function Dashboard() {
   // Read URL query params once on mount
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), [])
   const initialView = searchParams.get('view') ?? 'home'
-  const hideMenu = searchParams.get('menu') === 'false'
+  // hideMenu (?menu=false) previously hid RoomTabs — tabs are now removed
 
   const [activeTab, setActiveTab] = useState(initialView)
   const [showSettings, setShowSettings] = useState(false)
@@ -641,8 +655,9 @@ export function Dashboard() {
         <Header
           onSettingsClick={() => setShowSettings(true)}
           onSidebarToggle={() => setSidebarOpen((v) => !v)}
+          onHomeClick={() => setActiveTab('home')}
+          currentRoom={activeTab !== 'home' ? activeAreaName : undefined}
         />
-        {!hideMenu && <RoomTabs activeTab={activeTab} onTabChange={setActiveTab} />}
         {activeTab === 'home'
           ? <HomeView onShowSettings={() => setShowSettings(true)} onTabChange={setActiveTab} />
           : <TilesGrid
