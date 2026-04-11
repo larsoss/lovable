@@ -496,6 +496,7 @@ export function SettingsPanel({ onClose }: Props) {
   const [editingArea, setEditingArea] = useState<{ id: string; name: string } | null>(null)
   const [showNewArea, setShowNewArea] = useState(false)
   const [iconPickerEntityId, setIconPickerEntityId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const hue = theme.accent
 
@@ -565,6 +566,51 @@ export function SettingsPanel({ onClose }: Props) {
   const isCustomArea = (areaId: string) =>
     customAreas.some((a) => a.area_id === areaId)
 
+  // Search filtering
+  const q = search.toLowerCase()
+
+  const filteredAreas = useMemo(() => {
+    if (!q) return allAreas
+    return allAreas.filter((area) => {
+      if (area.name.toLowerCase().includes(q)) return true
+      // Also include area if any of its entities match
+      return entityIdsForArea(area.area_id).some((eid) => {
+        const e = entities[eid]
+        const lbl = entityLabel(eid, e?.attributes.friendly_name).toLowerCase()
+        return lbl.includes(q) || eid.toLowerCase().includes(q)
+      })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allAreas, entities, entityAreaOverrides, q])
+
+  const filteredEntityIdsForArea = (areaId: string): string[] => {
+    const ids = entityIdsForArea(areaId)
+    if (!q) return ids
+    return ids.filter((eid) => {
+      const e = entities[eid]
+      const lbl = entityLabel(eid, e?.attributes.friendly_name).toLowerCase()
+      return lbl.includes(q) || eid.toLowerCase().includes(q)
+    })
+  }
+
+  const filteredHidden = useMemo(() => {
+    if (!q) return hiddenEntities
+    return hiddenEntities.filter((eid) => {
+      const e = entities[eid]
+      const lbl = entityLabel(eid, e?.attributes.friendly_name).toLowerCase()
+      return lbl.includes(q) || eid.toLowerCase().includes(q)
+    })
+  }, [hiddenEntities, entities, q])
+
+  const filteredUnassigned = useMemo(() => {
+    if (!q) return unassigned
+    return unassigned.filter((eid) => {
+      const e = entities[eid]
+      const lbl = entityLabel(eid, e?.attributes.friendly_name).toLowerCase()
+      return lbl.includes(q) || eid.toLowerCase().includes(q)
+    })
+  }, [unassigned, entities, q])
+
   return (
     <div className="min-h-screen bg-ios-bg">
       {/* Header */}
@@ -595,7 +641,7 @@ export function SettingsPanel({ onClose }: Props) {
           {(['areas', 'appearance'] as const).map((s) => (
             <button
               key={s}
-              onClick={() => setSection(s)}
+              onClick={() => { setSection(s); setSearch('') }}
               className={cn(
                 'flex-1 py-2 rounded-xl text-sm font-medium transition-all capitalize',
                 section === s
@@ -608,20 +654,45 @@ export function SettingsPanel({ onClose }: Props) {
             </button>
           ))}
         </div>
+
+        {/* Search bar — areas section only */}
+        {section === 'areas' && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-2 bg-ios-card-2 rounded-xl px-3 py-2">
+              <Search className="w-4 h-4 text-ios-secondary shrink-0" />
+              <input
+                type="text"
+                placeholder="Search areas or entities…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-ios-label text-sm outline-none placeholder:text-ios-secondary"
+              />
+              {search && (
+                <button onClick={() => setSearch('')}>
+                  <X className="w-4 h-4 text-ios-secondary" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {section === 'appearance' ? (
         <AppearanceSection />
       ) : (
         <div className="px-4 pb-8 space-y-3 mt-3">
-          {allAreas.length === 0 ? (
+          {filteredAreas.length === 0 && !q ? (
             <div className="text-center py-12 text-ios-secondary">
               <p className="text-base font-medium">No areas found</p>
               <p className="text-sm mt-1 opacity-70">Add a custom area or create areas in Home Assistant</p>
             </div>
+          ) : filteredAreas.length === 0 && q ? (
+            <div className="text-center py-12 text-ios-secondary">
+              <p className="text-base font-medium">No results for "{search}"</p>
+            </div>
           ) : (
-            allAreas.map((area) => {
-              const areaEntities = entityIdsForArea(area.area_id)
+            filteredAreas.map((area) => {
+              const areaEntities = filteredEntityIdsForArea(area.area_id)
               const custom = isCustomArea(area.area_id)
               return (
                 <div key={area.area_id} className="bg-ios-card rounded-2xl overflow-hidden">
@@ -718,7 +789,7 @@ export function SettingsPanel({ onClose }: Props) {
           )}
 
           {/* Hidden entities */}
-          {hiddenEntities.length > 0 && (
+          {filteredHidden.length > 0 && (
             <div className="bg-ios-card rounded-2xl overflow-hidden mt-4">
               <div className="px-4 py-3 border-b border-ios-separator flex items-center gap-2">
                 <EyeOff className="w-4 h-4 text-ios-secondary" />
@@ -727,7 +798,7 @@ export function SettingsPanel({ onClose }: Props) {
                   <p className="text-xs text-ios-secondary mt-0.5">{hiddenEntities.length} hidden</p>
                 </div>
               </div>
-              {hiddenEntities.map((eid) => {
+              {filteredHidden.map((eid) => {
                 const entity = entities[eid]
                 const label = entity
                   ? entityLabel(eid, entity.attributes.friendly_name)
@@ -758,13 +829,13 @@ export function SettingsPanel({ onClose }: Props) {
           )}
 
           {/* Unassigned entities */}
-          {unassigned.length > 0 && (
+          {filteredUnassigned.length > 0 && (
             <div className="bg-ios-card rounded-2xl overflow-hidden mt-4">
               <div className="px-4 py-3 border-b border-ios-separator">
                 <p className="text-sm font-semibold text-ios-label">Unassigned</p>
                 <p className="text-xs text-ios-secondary mt-0.5">{unassigned.length} entities not in any area</p>
               </div>
-              {unassigned.map((eid) => {
+              {filteredUnassigned.map((eid) => {
                 const entity = entities[eid]
                 if (!entity) return null
                 const label = entityLabel(eid, entity.attributes.friendly_name)
