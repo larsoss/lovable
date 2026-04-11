@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.48] - 2026-04-11
+
+- feat: dashboard UX improvements based on user research
+
 ## [1.0.47] - 2026-04-07
 
 - fix: complete cross-device settings sync + HA back button
