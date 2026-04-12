@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.55] - 2026-04-12
+
+- feat: color mood presets in appearance settings
+
 ## [1.0.54] - 2026-04-11
 
 - feat: translate all UI strings to system language (12 languages)
