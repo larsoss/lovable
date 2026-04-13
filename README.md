@@ -5,7 +5,7 @@
 
 ---
 
-![The-One Dashboard](homekit_dashboard/logo.png)
+![The-One Dashboard](the_one_dashboard/logo.png)
 
 # The-One Dashboard — HA Add-on Repository
 
@@ -15,7 +15,7 @@ A beautiful, fully customizable Home Assistant dashboard add-on. Displays all yo
 
 1. In Home Assistant go to **Settings → Add-ons → Add-on Store**
 2. Click the **⋮** menu (top right) → **Repositories**
-3. Paste: `https://github.com/larsoss/lovable`
+3. Paste: `https://github.com/larsoss/the-onedashboard`
 4. Click **Add** → **Close**
 5. Find **The-One Dashboard** in the store and click **Install**
 6. Click **Start** — the dashboard appears in your sidebar
@@ -24,7 +24,7 @@ A beautiful, fully customizable Home Assistant dashboard add-on. Displays all yo
 
 | Add-on | Description |
 |--------|-------------|
-| [The-One Dashboard](homekit_dashboard/) | Beautiful glassmorphism dashboard for all your HA entities |
+| [The-One Dashboard](the_one_dashboard/) | Beautiful glassmorphism dashboard for all your HA entities |
 
 ## Features
 

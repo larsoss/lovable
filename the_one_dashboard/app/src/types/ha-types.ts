@@ -29,6 +29,9 @@ export interface ClimateAttributes {
   friendly_name?: string
   current_temperature?: number
   temperature?: number
+  target_temp_high?: number
+  target_temp_low?: number
+  target_temp_step?: number
   hvac_modes?: string[]
   hvac_action?: string
   min_temp?: number

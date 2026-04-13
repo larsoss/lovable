@@ -24,7 +24,7 @@ A beautiful, fully customizable Home Assistant dashboard. Shows all your entitie
 
 1. In Home Assistant go to **Settings → Add-ons → Add-on Store**
 2. Click the **⋮** menu → **Repositories**
-3. Add: `https://github.com/larsoss/lovable`
+3. Add: `https://github.com/larsoss/the-onedashboard`
 4. Find **The-One Dashboard** → **Install** → **Start**
 5. The dashboard appears in your HA sidebar
 

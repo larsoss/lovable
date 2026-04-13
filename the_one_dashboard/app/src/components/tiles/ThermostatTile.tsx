@@ -44,30 +44,42 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
   const { callService, entityIcons } = useHA()
   const [open, setOpen] = useState(false)
 
-  if (!entity) return null
-
-  const attrs = entity.attributes as ClimateAttributes
-  const hvacMode = entity.state
+  // Derive values safely — must happen before early return so hooks count is stable
+  const attrs = (entity?.attributes ?? {}) as ClimateAttributes
+  const hvacMode = entity?.state ?? 'off'
   const isActive = hvacMode !== 'off'
+  const isHeatCool = hvacMode === 'heat_cool'
   const activeColor = hvacMode === 'heat' ? 'amber' : hvacMode === 'cool' ? 'blue' : 'purple'
 
   const currentTemp = attrs.current_temperature
-  const targetTemp = attrs.temperature ?? 20
+  // heat_cool mode uses high/low targets; other modes use a single temperature
+  const targetTemp = isHeatCool
+    ? attrs.target_temp_high ?? attrs.temperature ?? 20
+    : attrs.temperature ?? 20
+  const targetLow = attrs.target_temp_low ?? (targetTemp - 2)
+  const step = attrs.target_temp_step ?? 0.5
   const unit = attrs.unit_of_measurement ?? '°C'
   const modes = attrs.hvac_modes ?? []
 
-  const CustomIcon = resolveEntityIcon(entityIcons, entityId)
-  const IconComp = CustomIcon ?? Thermometer
-
+  // All hooks must be declared before any conditional return
   const adjustTemp = useCallback(
     (delta: number) => {
-      const next = Math.round((targetTemp + delta) * 2) / 2
       const min = attrs.min_temp ?? 7
       const max = attrs.max_temp ?? 35
-      if (next < min || next > max) return
-      callService('climate', 'set_temperature', { temperature: next }, entityId)
+      if (isHeatCool) {
+        // Move both high and low together
+        const newHigh = Math.round((targetTemp + delta) * (1 / step)) / (1 / step)
+        const newLow  = Math.round((targetLow  + delta) * (1 / step)) / (1 / step)
+        if (newHigh > max || newLow < min) return
+        callService('climate', 'set_temperature',
+          { target_temp_high: newHigh, target_temp_low: newLow }, entityId)
+      } else {
+        const next = Math.round((targetTemp + delta) * (1 / step)) / (1 / step)
+        if (next < min || next > max) return
+        callService('climate', 'set_temperature', { temperature: next }, entityId)
+      }
     },
-    [callService, entityId, targetTemp, attrs.min_temp, attrs.max_temp]
+    [callService, entityId, isHeatCool, targetTemp, targetLow, step, attrs.min_temp, attrs.max_temp]
   )
 
   const setMode = useCallback(
@@ -76,6 +88,11 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
     },
     [callService, entityId]
   )
+
+  if (!entity) return null
+
+  const CustomIcon = resolveEntityIcon(entityIcons, entityId)
+  const IconComp = CustomIcon ?? Thermometer
 
   return (
     <>
@@ -94,16 +111,22 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
         >
           <button
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); adjustTemp(-0.5) }}
+            onClick={(e) => { e.stopPropagation(); adjustTemp(-step) }}
             className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-base leading-none font-medium active:scale-90 transition-all shrink-0"
             aria-label="Decrease temperature"
           >
             −
           </button>
           <div className="flex flex-col items-center leading-none gap-0.5">
-            <span className="text-sm font-bold text-ios-label tabular-nums">
-              {formatTemp(targetTemp, unit)}
-            </span>
+            {isHeatCool ? (
+              <span className="text-xs font-bold text-ios-label tabular-nums">
+                {formatTemp(targetLow, unit)}–{formatTemp(targetTemp, unit)}
+              </span>
+            ) : (
+              <span className="text-sm font-bold text-ios-label tabular-nums">
+                {formatTemp(targetTemp, unit)}
+              </span>
+            )}
             {currentTemp !== undefined && (
               <span className="text-[10px] text-ios-secondary tabular-nums">
                 {formatTemp(currentTemp, unit)}
@@ -112,7 +135,7 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
           </div>
           <button
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); adjustTemp(0.5) }}
+            onClick={(e) => { e.stopPropagation(); adjustTemp(step) }}
             className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-base leading-none font-medium active:scale-90 transition-all shrink-0"
             aria-label="Increase temperature"
           >
@@ -136,17 +159,28 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
           {/* Target temperature */}
           <div className="mt-6 flex items-center justify-center gap-6">
             <button
-              onClick={() => adjustTemp(-0.5)}
+              onClick={() => adjustTemp(-step)}
               className="w-12 h-12 rounded-full bg-ios-card-2 flex items-center justify-center text-2xl text-ios-label hover:bg-ios-separator active:scale-95 transition-all"
             >
               −
             </button>
             <div className="text-center">
-              <p className="text-5xl font-light text-ios-label">{formatTemp(targetTemp, unit)}</p>
-              <p className="text-xs text-ios-secondary mt-1">{t('target_temp')}</p>
+              {isHeatCool ? (
+                <>
+                  <p className="text-3xl font-light text-ios-label">
+                    {formatTemp(targetLow, unit)}–{formatTemp(targetTemp, unit)}
+                  </p>
+                  <p className="text-xs text-ios-secondary mt-1">{t('target_temp')}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-5xl font-light text-ios-label">{formatTemp(targetTemp, unit)}</p>
+                  <p className="text-xs text-ios-secondary mt-1">{t('target_temp')}</p>
+                </>
+              )}
             </div>
             <button
-              onClick={() => adjustTemp(0.5)}
+              onClick={() => adjustTemp(step)}
               className="w-12 h-12 rounded-full bg-ios-card-2 flex items-center justify-center text-2xl text-ios-label hover:bg-ios-separator active:scale-95 transition-all"
             >
               +
