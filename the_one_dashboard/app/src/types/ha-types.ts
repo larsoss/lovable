@@ -147,6 +147,7 @@ export interface MediaPlayerAttributes {
   media_content_type?: string
   media_duration?: number
   media_position?: number
+  media_position_updated_at?: string   // ISO timestamp of last position update
   media_image_url?: string
   entity_picture?: string
   volume_level?: number          // 0.0–1.0
@@ -156,7 +157,7 @@ export interface MediaPlayerAttributes {
   media_player_thumbnail?: string
   supported_features?: number
   shuffle?: boolean
-  repeat?: string
+  repeat?: string                // 'off' | 'one' | 'all'
 }
 
 export interface CameraAttributes {
