@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Zap, ZapOff } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import { useEntity } from '@/hooks/useEntities'
@@ -15,15 +16,25 @@ export function AutomationTile({ entityId }: AutomationTileProps) {
   const entity = useEntity(entityId)
   const { callService, entityIcons } = useHA()
 
+  // Optimistic enabled state — flips immediately, cleared when HA confirms
+  const [optimisticEnabled, setOptimisticEnabled] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setOptimisticEnabled(null)
+  }, [entity?.state])
+
   if (!entity) return null
 
-  const isEnabled = entity.state === 'on'
+  const entityEnabled = entity.state === 'on'
+  const isEnabled = optimisticEnabled !== null ? optimisticEnabled : entityEnabled
   const attrs = entity.attributes
   const label = entityLabel(entityId, attrs.friendly_name)
   const CustomIcon = resolveEntityIcon(entityIcons, entityId)
 
   const handleToggle = () => {
-    callService('automation', isEnabled ? 'turn_off' : 'turn_on', {}, entityId)
+    const next = !isEnabled
+    setOptimisticEnabled(next)
+    callService('automation', next ? 'turn_on' : 'turn_off', {}, entityId)
   }
 
   const handleTrigger = (e: React.MouseEvent) => {
@@ -46,7 +57,6 @@ export function AutomationTile({ entityId }: AutomationTileProps) {
       sublabel={isEnabled ? t('enabled') : t('disabled')}
       onClick={handleToggle}
     >
-      {/* Trigger button — runs automation immediately */}
       <button
         data-no-tile-click
         onClick={handleTrigger}

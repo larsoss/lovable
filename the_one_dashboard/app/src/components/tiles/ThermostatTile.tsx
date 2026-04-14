@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Thermometer } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import {
@@ -16,13 +16,13 @@ import { cn } from '@/lib/utils'
 import { t, type TranslationKey } from '@/lib/i18n'
 
 const HVAC_COLORS: Record<string, string> = {
-  heat:    'text-ios-amber',
-  cool:    'text-ios-blue',
+  heat:     'text-ios-amber',
+  cool:     'text-ios-blue',
   heat_cool:'text-ios-purple',
-  auto:    'text-ios-green',
-  off:     'text-ios-secondary',
-  fan_only:'text-ios-teal',
-  dry:     'text-ios-teal',
+  auto:     'text-ios-green',
+  off:      'text-ios-secondary',
+  fan_only: 'text-ios-teal',
+  dry:      'text-ios-teal',
 }
 
 const MODE_LABEL_KEYS: Record<string, TranslationKey> = {
@@ -44,7 +44,11 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
   const { callService, entityIcons } = useHA()
   const [open, setOpen] = useState(false)
 
-  // Derive values safely — must happen before early return so hooks count is stable
+  // Optimistic temperature — set immediately on press, cleared when HA confirms
+  const [localTemp, setLocalTemp] = useState<number | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Derive values safely before the early return so hook count stays stable
   const attrs = (entity?.attributes ?? {}) as ClimateAttributes
   const hvacMode = entity?.state ?? 'off'
   const isActive = hvacMode !== 'off'
@@ -52,34 +56,52 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
   const activeColor = hvacMode === 'heat' ? 'amber' : hvacMode === 'cool' ? 'blue' : 'purple'
 
   const currentTemp = attrs.current_temperature
-  // heat_cool mode uses high/low targets; other modes use a single temperature
   const targetTemp = isHeatCool
     ? attrs.target_temp_high ?? attrs.temperature ?? 20
     : attrs.temperature ?? 20
-  const targetLow = attrs.target_temp_low ?? (targetTemp - 2)
+  const targetLow  = attrs.target_temp_low ?? (targetTemp - 2)
   const step = attrs.target_temp_step ?? 0.5
   const unit = attrs.unit_of_measurement ?? '°C'
   const modes = attrs.hvac_modes ?? []
 
-  // All hooks must be declared before any conditional return
+  // Displayed values — use local (optimistic) when pending, entity value otherwise
+  const displayTemp = localTemp !== null ? localTemp : targetTemp
+  const displayLow  = localTemp !== null ? localTemp - (targetTemp - targetLow) : targetLow
+
+  // Clear optimistic temp when entity state is updated by HA
+  useEffect(() => {
+    setLocalTemp(null)
+  }, [targetTemp])
+
+  // adjustTemp: update display immediately, debounce the actual HA call
   const adjustTemp = useCallback(
     (delta: number) => {
-      const min = attrs.min_temp ?? 7
-      const max = attrs.max_temp ?? 35
+      const base = localTemp !== null ? localTemp : targetTemp
+      const min  = attrs.min_temp ?? 7
+      const max  = attrs.max_temp ?? 35
+
       if (isHeatCool) {
-        // Move both high and low together
-        const newHigh = Math.round((targetTemp + delta) * (1 / step)) / (1 / step)
-        const newLow  = Math.round((targetLow  + delta) * (1 / step)) / (1 / step)
+        const gap    = targetTemp - targetLow
+        const newHigh = Math.round((base + delta) * (1 / step)) / (1 / step)
+        const newLow  = newHigh - gap
         if (newHigh > max || newLow < min) return
-        callService('climate', 'set_temperature',
-          { target_temp_high: newHigh, target_temp_low: newLow }, entityId)
+        setLocalTemp(newHigh)
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => {
+          callService('climate', 'set_temperature',
+            { target_temp_high: newHigh, target_temp_low: newLow }, entityId)
+        }, 300)
       } else {
-        const next = Math.round((targetTemp + delta) * (1 / step)) / (1 / step)
+        const next = Math.round((base + delta) * (1 / step)) / (1 / step)
         if (next < min || next > max) return
-        callService('climate', 'set_temperature', { temperature: next }, entityId)
+        setLocalTemp(next)
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => {
+          callService('climate', 'set_temperature', { temperature: next }, entityId)
+        }, 300)
       }
     },
-    [callService, entityId, isHeatCool, targetTemp, targetLow, step, attrs.min_temp, attrs.max_temp]
+    [localTemp, targetTemp, targetLow, step, isHeatCool, attrs.min_temp, attrs.max_temp, callService, entityId]
   )
 
   const setMode = useCallback(
@@ -103,7 +125,7 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
         label={entityLabel(entityId, attrs.friendly_name)}
         onClick={() => setOpen(true)}
       >
-        {/* Inline ±0.5° controls — compact 2-line layout with target + current temp */}
+        {/* Inline ± controls */}
         <div
           data-no-tile-click
           className="flex items-center justify-between gap-1"
@@ -120,11 +142,11 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
           <div className="flex flex-col items-center leading-none gap-0.5">
             {isHeatCool ? (
               <span className="text-xs font-bold text-ios-label tabular-nums">
-                {formatTemp(targetLow, unit)}–{formatTemp(targetTemp, unit)}
+                {formatTemp(displayLow, unit)}–{formatTemp(displayTemp, unit)}
               </span>
             ) : (
               <span className="text-sm font-bold text-ios-label tabular-nums">
-                {formatTemp(targetTemp, unit)}
+                {formatTemp(displayTemp, unit)}
               </span>
             )}
             {currentTemp !== undefined && (
@@ -168,13 +190,13 @@ export function ThermostatTile({ entityId }: ThermostatTileProps) {
               {isHeatCool ? (
                 <>
                   <p className="text-3xl font-light text-ios-label">
-                    {formatTemp(targetLow, unit)}–{formatTemp(targetTemp, unit)}
+                    {formatTemp(displayLow, unit)}–{formatTemp(displayTemp, unit)}
                   </p>
                   <p className="text-xs text-ios-secondary mt-1">{t('target_temp')}</p>
                 </>
               ) : (
                 <>
-                  <p className="text-5xl font-light text-ios-label">{formatTemp(targetTemp, unit)}</p>
+                  <p className="text-5xl font-light text-ios-label">{formatTemp(displayTemp, unit)}</p>
                   <p className="text-xs text-ios-secondary mt-1">{t('target_temp')}</p>
                 </>
               )}

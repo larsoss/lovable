@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { PanelTop, PanelBottom } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover'
@@ -19,33 +19,25 @@ export function CoverTile({ entityId }: CoverTileProps) {
   const [open, setOpen] = useState(false)
   const [localPosition, setLocalPosition] = useState(100)
   const [isDragging, setIsDragging] = useState(false)
+
+  // Optimistic open/close — flips immediately, cleared when HA confirms
+  const [optimisticOpen, setOptimisticOpen] = useState<boolean | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  if (!entity) return null
+  useEffect(() => {
+    setOptimisticOpen(null)
+  }, [entity?.state])
 
-  const attrs = entity.attributes as CoverAttributes
-  const isOpen = entity.state === 'open' || entity.state === 'opening'
+  // Derive display state (hooks must all be before early return)
+  const attrs = (entity?.attributes ?? {}) as CoverAttributes
+  const entityOpen = entity?.state === 'open' || entity?.state === 'opening'
+  const isOpen = optimisticOpen !== null ? optimisticOpen : entityOpen
   const position = isDragging ? localPosition : (attrs.current_position ?? (isOpen ? 100 : 0))
 
-  const label = entityLabel(entityId, attrs.friendly_name)
-  const sublabel = attrs.current_position !== undefined
-    ? `${attrs.current_position}% open`
-    : isOpen ? 'Open' : 'Closed'
-
-  const CustomIcon = resolveEntityIcon(entityIcons, entityId)
-
-  const icon = CustomIcon
-    ? <CustomIcon className="w-full h-full" />
-    : isOpen
-      ? <PanelTop className="w-full h-full" />
-      : <PanelBottom className="w-full h-full" />
-
   const handleToggle = useCallback(() => {
-    if (isOpen) {
-      callService('cover', 'close_cover', {}, entityId)
-    } else {
-      callService('cover', 'open_cover', {}, entityId)
-    }
+    const next = !isOpen
+    setOptimisticOpen(next)
+    callService('cover', next ? 'open_cover' : 'close_cover', {}, entityId)
   }, [callService, isOpen, entityId])
 
   const handleLongPress = useCallback(() => {
@@ -58,7 +50,6 @@ export function CoverTile({ entityId }: CoverTileProps) {
       const pos = val[0]
       setLocalPosition(pos)
       setIsDragging(true)
-
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
         callService('cover', 'set_cover_position', { position: pos }, entityId)
@@ -67,6 +58,21 @@ export function CoverTile({ entityId }: CoverTileProps) {
     },
     [callService, entityId]
   )
+
+  const CustomIcon = resolveEntityIcon(entityIcons, entityId ?? '')
+
+  if (!entity) return null
+
+  const label = entityLabel(entityId, attrs.friendly_name)
+  const sublabel = attrs.current_position !== undefined
+    ? `${attrs.current_position}% open`
+    : isOpen ? 'Open' : 'Closed'
+
+  const icon = CustomIcon
+    ? <CustomIcon className="w-full h-full" />
+    : isOpen
+      ? <PanelTop className="w-full h-full" />
+      : <PanelBottom className="w-full h-full" />
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

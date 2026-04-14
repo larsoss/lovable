@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { ToggleRight, ToggleLeft } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import { useEntity } from '@/hooks/useEntities'
@@ -14,19 +14,28 @@ export function SwitchTile({ entityId }: SwitchTileProps) {
   const entity = useEntity(entityId)
   const { callService, entityIcons } = useHA()
 
+  // Optimistic on/off — flips immediately on tap, cleared when HA confirms
+  const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setOptimisticOn(null)
+  }, [entity?.state])
+
   if (!entity) return null
 
-  const isOn = entity.state === 'on'
+  const entityOn = entity.state === 'on'
+  const isOn = optimisticOn !== null ? optimisticOn : entityOn
   const domain = getDomain(entityId)
   const attrs = entity.attributes
   const label = entityLabel(entityId, attrs.friendly_name)
 
   const CustomIcon = resolveEntityIcon(entityIcons, entityId)
 
-  const handleToggle = useCallback(() => {
-    const svc = isOn ? 'turn_off' : 'turn_on'
-    callService(domain, svc, {}, entityId)
-  }, [callService, domain, isOn, entityId])
+  const handleToggle = () => {
+    const next = !isOn
+    setOptimisticOn(next)
+    callService(domain, next ? 'turn_on' : 'turn_off', {}, entityId)
+  }
 
   const icon = CustomIcon
     ? <CustomIcon className="w-full h-full" />

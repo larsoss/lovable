@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Lightbulb, Power } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import { ColorWheel } from './ColorWheel'
@@ -132,10 +132,15 @@ export function LightTile({ entityId }: LightTileProps) {
   const colorDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const brightnessDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Optimistic on/off — flips immediately on tap, cleared when HA confirms
+  const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null)
+  useEffect(() => { setOptimisticOn(null) }, [entity?.state])
+
   if (!entity) return null
 
   const attrs = entity.attributes as LightAttributes
-  const isOn = entity.state === 'on'
+  const entityOn = entity.state === 'on'
+  const isOn = optimisticOn !== null ? optimisticOn : entityOn
 
   // Detect light group: HA puts member entity_id list in attributes
   const rawEntityId = (attrs as Record<string, unknown>).entity_id
@@ -314,7 +319,11 @@ export function LightTile({ entityId }: LightTileProps) {
       icon={<IconComp className="w-full h-full" fill={!CustomIcon && isOn ? 'currentColor' : 'none'} />}
       label={entityLabel(entityId, attrs.friendly_name)}
       sublabel={sublabel}
-      onClick={hasColor ? openColorDialog : () => callService('light', isOn ? 'turn_off' : 'turn_on', {}, entityId)}
+      onClick={hasColor ? openColorDialog : () => {
+        const next = !isOn
+        setOptimisticOn(next)
+        callService('light', next ? 'turn_on' : 'turn_off', {}, entityId)
+      }}
       onLongPress={hasColor ? openColorDialog : handleLongPress}
     >
       {/* Brightness bar — visible when light is on and brightness is known */}
@@ -353,7 +362,11 @@ export function LightTile({ entityId }: LightTileProps) {
                 )}
               </div>
               <button
-                onClick={() => callService('light', isOn ? 'turn_off' : 'turn_on', {}, entityId)}
+                onClick={() => {
+                  const next = !isOn
+                  setOptimisticOn(next)
+                  callService('light', next ? 'turn_on' : 'turn_off', {}, entityId)
+                }}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all shrink-0 ml-3',
                   isOn

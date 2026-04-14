@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Lock, LockOpen } from 'lucide-react'
 import { BaseTile } from './BaseTile'
 import {
@@ -22,12 +22,37 @@ export function LockTile({ entityId }: LockTileProps) {
   const { callService, entityIcons } = useHA()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  // Optimistic locked state — changes immediately, cleared when HA confirms
+  const [optimisticLocked, setOptimisticLocked] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setOptimisticLocked(null)
+  }, [entity?.state])
+
+  const entityLocked = entity?.state === 'locked'
+  const isLocked = optimisticLocked !== null ? optimisticLocked : entityLocked
+
+  const handleToggle = useCallback(() => {
+    if (isLocked) {
+      // Unlock requires confirmation
+      setConfirmOpen(true)
+    } else {
+      // Lock immediately — show as locked right away
+      setOptimisticLocked(true)
+      callService('lock', 'lock', {}, entityId)
+    }
+  }, [callService, isLocked, entityId])
+
+  const confirmUnlock = useCallback(() => {
+    setOptimisticLocked(false)
+    callService('lock', 'unlock', {}, entityId)
+    setConfirmOpen(false)
+  }, [callService, entityId])
+
   if (!entity) return null
 
   const attrs = entity.attributes as LockAttributes
-  const isLocked = entity.state === 'locked'
   const label = entityLabel(entityId, attrs.friendly_name)
-
   const CustomIcon = resolveEntityIcon(entityIcons, entityId)
 
   const icon = CustomIcon
@@ -35,19 +60,6 @@ export function LockTile({ entityId }: LockTileProps) {
     : isLocked
       ? <Lock className="w-full h-full" />
       : <LockOpen className="w-full h-full" />
-
-  const handleToggle = useCallback(() => {
-    if (isLocked) {
-      setConfirmOpen(true)
-    } else {
-      callService('lock', 'lock', {}, entityId)
-    }
-  }, [callService, isLocked, entityId])
-
-  const confirmUnlock = useCallback(() => {
-    callService('lock', 'unlock', {}, entityId)
-    setConfirmOpen(false)
-  }, [callService, entityId])
 
   return (
     <>
