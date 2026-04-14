@@ -1,104 +1,65 @@
 # Changelog
 
-## [1.0.62] - 2026-04-14
+## [2.0.0] - 2026-04-14
 
-- feat: redesign media player tile — Spotify-style with real-time progress
+### Tiles
+- Light tiles — tap to toggle, long-press brightness slider, tap for color dialog (HSV wheel, color temp, presets, light groups)
+- Switch / Input Boolean tiles — tap to toggle
+- Thermostat / Climate tiles — temperature dialog with +/– controls, mode selector (heat/cool/heat_cool/auto/fan/dry), optimistic instant feedback
+- Lock tiles — unlock confirmation dialog, instant lock
+- Cover / Blind tiles — tap open/close, long-press position slider, Open/Stop/Close buttons
+- Sensor / Binary Sensor tiles — read-only with device-class icons
+- Scene tiles — tap to activate
+- Automation tiles — toggle enabled/disabled, trigger button
+- Script tiles — run with spinner while executing
+- Weather tiles — current conditions + 3-day forecast row
+- Media Player tiles — Spotify-style with blurred art background, real-time progress bar, shuffle/repeat, volume
+- Camera tiles — live snapshot (10s refresh), tap for full-screen HLS stream
+- Calendar tiles — next event + 7-day modal
+- Person tiles — avatar, zone, linked sensors (battery, WiFi, steps, activity, proximity, Spotify, ringer, geocoded address)
 
-## [1.0.61] - 2026-04-14
+### Home View
+- Favorites section — starred entities pinned to top
+- People section — person cards side by side with equal height
+- Room cards — area cards with icon, active device count, temperature; tap to navigate
+- Custom background photos on room cards — upload JPEG in edit mode, dark gradient overlay
 
-- docs: rewrite README as full user guide with screenshot placeholders
+### Edit Mode
+- Tile resize — drag bottom-right handle to 1×1 / 2×1 / 4×1 / 1×2 / 2×2 / 4×2
+- Drag to reorder tiles within an area
+- Hide / restore tiles per entity
+- Custom icon picker (43 presets) per entity
+- Favorite toggle per entity
+- Add entities to any area (search + multi-select)
+- Room card resize + background image upload/remove
+- Undo last hide via toolbar
 
-## [1.0.60] - 2026-04-14
+### Settings
+- Areas tab — entity area assignment, custom areas, icon/favorite/hide per entity, restore hidden
+- Appearance tab — accent color, tile style (glass/solid), tile size, icon size, opacity slider, background theme
 
-- feat: clean up favorites overlay, side-by-side person cards, room card background images
+### Sidebar
+- Collapsible left panel (overlay on mobile, persistent on desktop)
+- Clock with time-of-day greeting using your HA user name
+- Current weather (temperature + condition)
+- Active device counters (lights on, switches on, covers open)
+- Persistent notification alerts with dismiss
+- Quick-navigate to any room
 
-## [1.0.59] - 2026-04-14
+### Infrastructure
+- Zero-config HA add-on — auto-connects via Supervisor token
+- WebSocket real-time state updates
+- Per-user settings namespaced in localStorage with cross-device sync to HA server
+- Auto-detect logged-in user via ingress `X-Hass-User-ID` header
+- Optimistic UI — all interactive tiles update instantly without waiting for HA round-trip
+- Pre-built React frontend bundled in Docker image for fast add-on updates
+- URL params: `?view=<area_id>` deep-link, `?menu=false` kiosk mode
+- 12-language i18n (auto-detected from HA language setting)
 
-- feat: optimistic UI updates for all interactive tiles
-
-## [1.0.58] - 2026-04-13
-
-- fix: thermostat temperature controls + README paths
-
-## [1.0.56] - 2026-04-13
-
-- feat: professional settings panel redesign
-
-## [1.0.55] - 2026-04-12
-
-- feat: color mood presets in appearance settings
-
-## [1.0.54] - 2026-04-11
-
-- feat: translate all UI strings to system language (12 languages)
-
-## [1.0.53] - 2026-04-11
-
-- fix: house button → home tab, remove room tabs, area card drag-resize
-
-## [1.0.52] - 2026-04-11
-
-- fix: thermostat tile overflow + climate count incorrect
-
-## [1.0.51] - 2026-04-11
-
-- feat: add search bar to settings areas panel
-
-## [1.0.50] - 2026-04-11
-
-- feat: easier dashboard editing — jiggle, add-entity, edit toolbar
-
-## [1.0.49] - 2026-04-11
-
-- perf: pre-build frontend to drastically speed up HA add-on updates
-
-## [1.0.48] - 2026-04-11
-
-- feat: dashboard UX improvements based on user research
-
-## [1.0.47] - 2026-04-07
-
-- fix: complete cross-device settings sync + HA back button
-
-## [1.0.46] - 2026-04-07
-
-- feat: live tile resize preview while dragging
-
-## [1.0.44] - 2026-04-07
-
-- feat: rename all remaining homekit references to the-one-dashboard
-
-## [1.0.43] - 2026-04-07
-
-- feat: new tiles, sidebar, camera, calendar, floorplan, query params
-
-## [1.0.42] - 2026-04-07
-
-- feat: auto-detect logged-in HA user via ingress header (X-Hass-User-ID)
-- feat: per-user settings with cross-device sync, namespaced localStorage
-- feat: drag-to-reorder tiles fixed (pointer-events-none overlay)
-- feat: heart/favorite button on tiles in edit mode
-
-## [1.0.35] - 2026-04-06
-
-- feat: person card tile with linked sensors (battery, WiFi, steps, Spotify)
-- feat: light group support — individual lamp cards in color dialog
-- feat: hide entities from dashboard without removing from Home Assistant
-
-## [1.0.21] - 2026-04-05
-
-- feat: edit mode for tiles — resize (1×1, 2×1, 1×2, 2×2), reorder, hide
-- feat: home view area cards — click to navigate to area
-- feat: color picker for lights (hue wheel, brightness, color temp, presets)
-- feat: fully responsive layout for all screen sizes
-- feat: custom icon picker per entity (43 presets)
-- feat: theme customization — accent color, tile style, background, opacity
-- feat: The-One Dashboard rebrand
+---
 
 ## [1.0.0] - 2026-04-04
 
-- feat: initial release — The-One Dashboard as Home Assistant add-on
-- feat: light, switch, thermostat, lock, cover, sensor, person tiles
-- feat: area-based room tabs, favorites, drag-reorder areas
-- feat: glassmorphism tile style with iOS color tokens
-- feat: HA ingress integration with supervisor token auth
+- Initial release — HomeKit-style dashboard as a Home Assistant add-on
+- Light, switch, thermostat, lock, cover, sensor, person tiles
+- Area-based rooms, glassmorphism tile style, HA ingress integration
