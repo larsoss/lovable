@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.60] - 2026-04-14
+
+- feat: clean up favorites overlay, side-by-side person cards, room card background images
+
 ## [1.0.59] - 2026-04-14
 
 - feat: optimistic UI updates for all interactive tiles
