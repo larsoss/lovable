@@ -267,7 +267,6 @@ interface TileWrapperProps {
   isEditMode: boolean
   isDragging: boolean
   isDragOver: boolean
-  isFavorited: boolean
   contextId?: string
   onDragStart: () => void
   onDragOver: (e: React.DragEvent) => void
@@ -275,7 +274,7 @@ interface TileWrapperProps {
   onDragEnd: () => void
 }
 
-function TileWrapper({ entity, span, isEditMode, isDragging, isDragOver, isFavorited, contextId, onDragStart, onDragOver, onDrop, onDragEnd }: TileWrapperProps) {
+function TileWrapper({ entity, span, isEditMode, isDragging, isDragOver, contextId, onDragStart, onDragOver, onDrop, onDragEnd }: TileWrapperProps) {
   const tileRef = useRef<HTMLDivElement>(null)
   // previewSpan is lifted here so the grid cell itself resizes during drag
   const [previewSpan, setPreviewSpan] = useState<TileSpan | null>(null)
@@ -312,9 +311,6 @@ function TileWrapper({ entity, span, isEditMode, isDragging, isDragOver, isFavor
           onPreviewChange={setPreviewSpan}
         />
       )}
-      {!isEditMode && isFavorited && (
-        <Heart className="w-3 h-3 fill-red-400 text-red-400 absolute top-1.5 right-1.5 z-5 pointer-events-none" />
-      )}
     </div>
   )
 }
@@ -327,7 +323,7 @@ interface TilesGridProps {
 }
 
 export function TilesGrid({ entities, contextId, className, onAddEntity }: TilesGridProps) {
-  const { theme, isEditMode, entityTileSizes, hiddenEntities, entityOrder, setContextEntityOrder, favorites } = useHA()
+  const { theme, isEditMode, entityTileSizes, hiddenEntities, entityOrder, setContextEntityOrder } = useHA()
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
 
@@ -393,7 +389,6 @@ export function TilesGrid({ entities, contextId, className, onAddEntity }: Tiles
             isEditMode={isEditMode}
             isDragging={isDragging}
             isDragOver={isDragOver}
-            isFavorited={favorites.includes(entity.entity_id)}
             contextId={contextId}
             onDragStart={() => setDragId(entity.entity_id)}
             onDragOver={(e) => { e.preventDefault(); if (dragId) setDragOverId(entity.entity_id) }}

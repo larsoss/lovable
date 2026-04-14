@@ -12,8 +12,9 @@ import { SPAN_CLASSES, snapSpan, type TileSpan } from '@/lib/tile-sizes'
 import {
   Wifi, Activity, GripVertical, GripHorizontal, Star,
   Home, Sofa, BedDouble, ChefHat, Bath, Car, Flower2, Tv, Dumbbell,
-  Lightbulb, Thermometer, Check, Plus, RotateCcw, Search, X,
+  Lightbulb, Thermometer, Check, Plus, RotateCcw, Search, X, Image,
 } from 'lucide-react'
+import { PersonTile } from '@/components/tiles/PersonTile'
 import type { HassEntity } from '@/types/ha-types'
 import type { LucideIcon } from 'lucide-react'
 
@@ -264,11 +265,48 @@ interface AreaCardProps {
   onClick: () => void
 }
 
+/** Compress an image file to a JPEG data URL (max 640px wide, quality 0.75) */
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const maxW = 640
+      const scale = Math.min(1, maxW / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { reject(new Error('no ctx')); return }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL('image/jpeg', 0.75))
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
+
 function AreaCard({
   areaId, areaName, entities, isDragOver,
   onDragStart, onDragOver, onDrop, onDragEnd, onClick,
 }: AreaCardProps) {
-  const { theme, isEditMode, entityTileSizes, setEntityTileSize } = useHA()
+  const { theme, isEditMode, entityTileSizes, setEntityTileSize, areaImages, saveAreaImage, removeAreaImage } = useHA()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const bgImage = areaImages[areaId]
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const dataUrl = await compressImage(file)
+      saveAreaImage(areaId, dataUrl)
+    } catch {
+      // ignore compression errors
+    }
+    // reset file input so same file can be re-selected
+    e.target.value = ''
+  }
   const isGlass = theme.tileStyle === 'glass'
   const opacity = theme.tileOpacity / 100
   const span = entityTileSizes[areaId] ?? '1x1'
@@ -330,13 +368,16 @@ function AreaCard({
   const AreaIcon = getAreaIcon(areaName)
   const isResizing = previewSpan !== null && previewSpan !== span
 
-  const bgStyle: React.CSSProperties = isGlass
-    ? hasActivity
-      ? { background: `rgba(255,159,10,${0.18 * opacity})`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid rgba(255,255,255,${0.18 * opacity})` }
-      : { background: `rgba(255,255,255,${0.06 * opacity})`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid rgba(255,255,255,${0.10 * opacity})` }
-    : hasActivity
-      ? { background: `rgba(255,159,10,${0.18 * opacity})` }
-      : { background: `rgba(44,44,46,${opacity})` }
+  // When a background image is set, always use white text with a dark gradient overlay
+  const bgStyle: React.CSSProperties = bgImage
+    ? {}
+    : isGlass
+      ? hasActivity
+        ? { background: `rgba(255,159,10,${0.18 * opacity})`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid rgba(255,255,255,${0.18 * opacity})` }
+        : { background: `rgba(255,255,255,${0.06 * opacity})`, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: `1px solid rgba(255,255,255,${0.10 * opacity})` }
+      : hasActivity
+        ? { background: `rgba(255,159,10,${0.18 * opacity})` }
+        : { background: `rgba(44,44,46,${opacity})` }
 
   return (
     <div
@@ -348,7 +389,7 @@ function AreaCard({
       onDragEnd={onDragEnd}
       onClick={() => { if (!isEditMode) onClick() }}
       className={cn(
-        'relative rounded-2xl p-3 sm:p-4 flex flex-col justify-between',
+        'relative rounded-2xl overflow-hidden p-3 sm:p-4 flex flex-col justify-between',
         previewSpan ? 'transition-none' : 'transition-all duration-150',
         'cursor-pointer select-none',
         !isEditMode && 'active:scale-95',
@@ -359,51 +400,95 @@ function AreaCard({
       )}
       style={bgStyle}
     >
+      {/* Background image with gradient overlay */}
+      {bgImage && (
+        <>
+          <img
+            src={bgImage}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 100%)' }}
+          />
+        </>
+      )}
+
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
+
       {/* Top row: icon + drag-reorder handle */}
-      <div className="flex items-start justify-between">
-        <AreaIcon className={cn('w-6 h-6', hasActivity ? 'text-ios-amber' : 'text-ios-secondary')} />
+      <div className="relative flex items-start justify-between">
+        <AreaIcon className={cn('w-6 h-6', bgImage ? 'text-white/80' : hasActivity ? 'text-ios-amber' : 'text-ios-secondary')} />
         {isEditMode && (
           <GripVertical className="w-4 h-4 text-white/50 cursor-grab active:cursor-grabbing" />
         )}
       </div>
 
       {/* Middle: activity badges */}
-      <div className="flex flex-wrap gap-1 my-1">
+      <div className="relative flex flex-wrap gap-1 my-1">
         {lightsOn > 0 && (
-          <span className="flex items-center gap-0.5 text-[10px] text-ios-amber font-medium">
+          <span className={cn('flex items-center gap-0.5 text-[10px] font-medium', bgImage ? 'text-white/90' : 'text-ios-amber')}>
             <Lightbulb className="w-3 h-3" />{lightsOn}
           </span>
         )}
         {tempLabel && (
-          <span className="flex items-center gap-0.5 text-[10px] text-ios-secondary font-medium">
+          <span className={cn('flex items-center gap-0.5 text-[10px] font-medium', bgImage ? 'text-white/70' : 'text-ios-secondary')}>
             <Thermometer className="w-3 h-3" />{tempLabel}{tempUnit}
           </span>
         )}
       </div>
 
       {/* Bottom: name + count */}
-      <div>
-        <p className={cn('text-sm font-semibold leading-tight truncate', hasActivity ? 'text-ios-label' : 'text-ios-secondary')}>
+      <div className="relative">
+        <p className={cn('text-sm font-semibold leading-tight truncate', bgImage ? 'text-white' : hasActivity ? 'text-ios-label' : 'text-ios-secondary')}>
           {areaName}
         </p>
-        <p className="text-xs text-ios-secondary mt-0.5">
+        <p className={cn('text-xs mt-0.5', bgImage ? 'text-white/70' : 'text-ios-secondary')}>
           {tn(entities.length, 'devices_one', 'devices_many')}
           {activeCount > 0 && ` ${t('active_count', { n: activeCount })}`}
         </p>
       </div>
 
-      {/* Edit mode: size label + resize handle */}
+      {/* Edit mode: size label + image upload + resize handle */}
       {isEditMode && (
         <>
           <span className={cn(
-            'absolute top-2 right-2 text-[10px] font-mono transition-colors',
+            'absolute top-2 right-2 text-[10px] font-mono transition-colors z-10',
             isResizing ? 'text-ios-blue font-bold' : 'text-white/40'
           )}>
             {activeSpan}
           </span>
+
+          {/* Image upload / remove button */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            <button
+              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+            >
+              <Image className="w-3 h-3" />
+              {bgImage ? 'Change' : 'Photo'}
+            </button>
+            {bgImage && (
+              <button
+                onClick={(e) => { e.stopPropagation(); removeAreaImage(areaId) }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-red-500/60 text-white hover:bg-red-500/80 backdrop-blur-sm"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
           <div
             className={cn(
-              'absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg flex items-center justify-center cursor-nwse-resize transition-colors',
+              'absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg flex items-center justify-center cursor-nwse-resize transition-colors z-10',
               isResizing ? 'bg-ios-blue/80' : 'bg-white/20 hover:bg-white/40',
             )}
             onPointerDown={onResizePointerDown}
@@ -511,7 +596,7 @@ function HomeView({ onShowSettings, onTabChange }: HomeViewProps) {
         </div>
       )}
 
-      {/* People */}
+      {/* People — side-by-side equal-height cards */}
       {personEntities.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 px-4 pt-5 pb-2">
@@ -519,7 +604,11 @@ function HomeView({ onShowSettings, onTabChange }: HomeViewProps) {
             <h2 className="text-base font-bold text-ios-label">{t('people')}</h2>
             <span className="text-xs text-ios-secondary ml-1">{personEntities.length}</span>
           </div>
-          <TilesGrid entities={personEntities} contextId="people" />
+          <div className="grid grid-cols-2 gap-2 px-4 items-start">
+            {personEntities.map((e) => (
+              <PersonTile key={e.entity_id} entityId={e.entity_id} />
+            ))}
+          </div>
         </div>
       )}
 

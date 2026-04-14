@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.59] - 2026-04-14
+
+- feat: optimistic UI updates for all interactive tiles
+
 ## [1.0.58] - 2026-04-13
 
 - fix: thermostat temperature controls + README paths

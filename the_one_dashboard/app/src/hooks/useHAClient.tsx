@@ -17,6 +17,9 @@ import {
   saveFavorites,
   getAreaOrder,
   saveAreaOrder as persistAreaOrder,
+  getAreaImages,
+  saveAreaImages,
+  type AreaImages,
 } from '@/lib/area-storage'
 import {
   getTheme,
@@ -104,6 +107,10 @@ interface HAContextValue {
   // Entity order per area/context
   entityOrder: EntityOrderMap
   setContextEntityOrder: (contextId: string, order: string[]) => void
+  // Area background images
+  areaImages: AreaImages
+  saveAreaImage: (areaId: string, dataUrl: string) => void
+  removeAreaImage: (areaId: string) => void
 }
 
 const HAContext = createContext<HAContextValue>({
@@ -138,6 +145,9 @@ const HAContext = createContext<HAContextValue>({
   toggleHideEntity: () => undefined,
   entityOrder: {},
   setContextEntityOrder: () => undefined,
+  areaImages: {},
+  saveAreaImage: () => undefined,
+  removeAreaImage: () => undefined,
 })
 
 export function HAProvider({ children }: { children: React.ReactNode }) {
@@ -161,6 +171,7 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
   const [entityTileSizes, setEntityTileSizesState] = useState<EntityTileSizes>(getTileSizes)
   const [hiddenEntities, setHiddenEntitiesState] = useState<string[]>(getHiddenEntities)
   const [entityOrder, setEntityOrderState] = useState<EntityOrderMap>(getEntityOrder)
+  const [areaImages, setAreaImages] = useState<AreaImages>(getAreaImages)
   const clientRef = useRef<HAClient | null>(null)
 
   // Apply background CSS variable whenever bgStyle changes
@@ -339,6 +350,23 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
+  const saveAreaImage = useCallback((areaId: string, dataUrl: string) => {
+    setAreaImages((prev) => {
+      const next = { ...prev, [areaId]: dataUrl }
+      saveAreaImages(next)
+      return next
+    })
+  }, [])
+
+  const removeAreaImage = useCallback((areaId: string) => {
+    setAreaImages((prev) => {
+      const next = { ...prev }
+      delete next[areaId]
+      saveAreaImages(next)
+      return next
+    })
+  }, [])
+
   const saveEntityIcon = useCallback((entityId: string, iconName: string | null) => {
     setEntityIcons((prev) => {
       const next = { ...prev }
@@ -372,6 +400,7 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
     setEntityOrderState(getEntityOrder())
     setEntityAreaOverrides(getEntityAreaOverrides())
     setCustomAreas(getCustomAreas())
+    setAreaImages(getAreaImages())
   }, [])
 
   // Auto-detect logged-in HA user via ingress header, fall back to stored ID
@@ -422,6 +451,9 @@ export function HAProvider({ children }: { children: React.ReactNode }) {
         toggleHideEntity,
         entityOrder,
         setContextEntityOrder,
+        areaImages,
+        saveAreaImage,
+        removeAreaImage,
       }}
     >
       {children}

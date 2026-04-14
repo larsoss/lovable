@@ -69,3 +69,19 @@ export function getAreaOrder(): string[] {
 export function saveAreaOrder(ids: string[]): void {
   localStorage.setItem(KEY_AREA_ORDER(), JSON.stringify(ids))
 }
+
+// ── Area background images ────────────────────────────────────────────────────
+
+// area_id → base64 JPEG data URL
+export type AreaImages = Record<string, string>
+
+function KEY_AREA_IMAGES() { return userKey('hk_area_images') }
+
+export function getAreaImages(): AreaImages {
+  try { return JSON.parse(localStorage.getItem(KEY_AREA_IMAGES()) ?? '{}') as AreaImages }
+  catch { return {} }
+}
+
+export function saveAreaImages(images: AreaImages): void {
+  localStorage.setItem(KEY_AREA_IMAGES(), JSON.stringify(images))
+}
