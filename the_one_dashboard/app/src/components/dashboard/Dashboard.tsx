@@ -661,7 +661,7 @@ export function Dashboard() {
   const {
     status, entities, resolveEntityArea, currentUserId, haUsers, selectUser,
     isEditMode, toggleEditMode, hiddenEntities, toggleHideEntity,
-    haAreas, customAreas,
+    haAreas, customAreas, callService,
   } = useHA()
 
   // Read URL query params once on mount
@@ -673,6 +673,24 @@ export function Dashboard() {
   const [showSettings, setShowSettings] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+
+  // Auto-apply Browser Mod topbar hide once HA is connected
+  const headerAppliedRef = useRef(false)
+  useEffect(() => {
+    if (status !== 'connected' || headerAppliedRef.current) return
+    if (localStorage.getItem('hk_hide_ha_header') !== 'true') return
+    headerAppliedRef.current = true
+    const code =
+      `(function(){try{var sr=document.querySelector('home-assistant')` +
+      `?.shadowRoot?.querySelector('home-assistant-main')?.shadowRoot;` +
+      `if(!sr)return;` +
+      `if(!window.__todHH){window.__todHH=new CSSStyleSheet();` +
+      `window.__todHH.replaceSync('app-header,.header{display:none!important}');}` +
+      `if(!sr.adoptedStyleSheets.includes(window.__todHH))` +
+      `sr.adoptedStyleSheets=[...sr.adoptedStyleSheets,window.__todHH];` +
+      `}catch(e){}})();`
+    callService('browser_mod', 'javascript', { code })
+  }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Undo-hide: track the last entity that was newly hidden while in edit mode
   const prevHiddenRef = useRef<string[]>(hiddenEntities)
