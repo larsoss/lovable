@@ -8,8 +8,7 @@
 A HomeKit-style Home Assistant dashboard add-on. Glassmorphism tiles, color light controls, per-user settings, and real-time WebSocket updates — no configuration needed.
 
 <!-- Add your screenshots to docs/screenshots/ and uncomment the lines below -->
-<!-- ![Home view](docs/screenshots/home.png) -->
-<!-- ![Room view](docs/screenshots/room.png) -->
+![Home view](docs/screenshots/home.jpg)
 <!-- ![Edit mode](docs/screenshots/edit-mode.png) -->
 
 ---
@@ -37,7 +36,6 @@ A HomeKit-style Home Assistant dashboard add-on. Glassmorphism tiles, color ligh
 3. Find **The-One Dashboard** → **Install** → **Start**
 4. The dashboard appears in your HA sidebar automatically
 
-<!-- ![Installation step](docs/screenshots/installation.png) -->
 
 ---
 
@@ -56,7 +54,7 @@ Each area card shows:
 - Taps through to the full room tile grid
 - Optional custom background photo (set in Edit Mode)
 
-<!-- ![Home view](docs/screenshots/home.png) -->
+![Home view](docs/screenshots/home.jpg)
 
 ---
 
@@ -66,7 +64,7 @@ Tap any area card to enter that room. All supported entities for that area are s
 
 Swipe back or tap the room name in the header to return home.
 
-<!-- ![Room view](docs/screenshots/room.png) -->
+![Room view](docs/screenshots/room.jpg)
 
 ---
 
@@ -176,7 +174,8 @@ Tap **✓ Done** in the bottom toolbar to exit Edit Mode.
 
 Tap the **⚙️ gear** icon in the header.
 
-<!-- ![Settings panel](docs/screenshots/settings.png) -->
+![Settings — Gebieden](docs/screenshots/settings-main.jpg)
+![Settings — Weergave](docs/screenshots/settings-view.jpg)
 
 ### Areas tab
 
@@ -304,15 +303,16 @@ Suggested filenames:
 
 ```
 docs/screenshots/
-  home.png          ← Home view with favorites + people + room cards
-  room.png          ← A room with various tiles
-  edit-mode.png     ← Edit mode overlay
-  light-color.png   ← Color light dialog
-  thermostat.png    ← Thermostat temperature dialog
-  settings.png      ← Settings panel (Areas tab)
-  sidebar.png       ← Open sidebar
-  person-card.png   ← Person tile with linked sensors
-  room-card-image.png ← Area card with custom background photo
+  home.jpg              ✓ Home view with favorites + people + room cards
+  room.jpg              ✓ A room with various tiles
+  settings-main.jpg     ✓ Settings panel — Gebieden (Areas) tab
+  settings-view.jpg     ✓ Settings panel — Weergave (Appearance) tab
+  edit-mode.png         ← Edit mode overlay
+  light-color.png       ← Color light dialog
+  thermostat.png        ← Thermostat temperature dialog
+  sidebar.png           ← Open sidebar
+  person-card.png       ← Person tile with linked sensors
+  room-card-image.png   ← Area card with custom background photo
 ```
 
 ---
